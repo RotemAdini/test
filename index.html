@@ -752,8 +752,11 @@ function renderCategory(cat){
 
   const headerActions=document.createElement("div");
   headerActions.className="header-actions";
-
-  // ניהול דרך התפריט
+// פריטים שמוצגים כרגע (אחרי חיפוש/פילטרים) ואינם משוייכים לתת־קטגוריה
+const unassignedItems = allVisible.filter(it => !it.subcat);
+const hasUnassigned = unassignedItems.length > 0;
+  
+// ניהול דרך התפריט
   const renameBtn=document.createElement("button");
   renameBtn.className="rename-btn btn-ghost small";
   renameBtn.textContent="✏️";
@@ -788,28 +791,33 @@ function renderCategory(cat){
   subWrap.className="subcats";
 
   // 'ללא תת־קטגוריה'
-  const unBox=document.createElement("section");
-  unBox.className="subcat"+(cat.unCollapsed ? "" : " collapsed");
+  // 'ללא תת־קטגוריה' – מציגים רק אם יש פריטים כאלה
+if (hasUnassigned) {
+  const unBox = document.createElement("section");
+  unBox.className = "subcat" + (cat.unCollapsed ? "" : " collapsed");
 
-  const unHead=document.createElement("div");
-  unHead.className="subcat-header";
-  unHead.innerHTML='<h4>ללא תת־קטגוריה</h4><span class="chev" title="פתח/סגור">▾</span>';
-  unHead.addEventListener("click",()=>{
-    cat.unCollapsed=!cat.unCollapsed;
+  const unHead = document.createElement("div");
+  unHead.className = "subcat-header";
+  unHead.innerHTML = '<h4>ללא תת־קטגוריה</h4><span class="chev" title="פתח/סגור">▾</span>';
+  unHead.addEventListener("click", () => {
+    cat.unCollapsed = !cat.unCollapsed;
     saveBoard(); render();
   });
 
-  const unList=document.createElement("div");
-  unList.className="list";
-  unList.dataset.catId=cat.id;
-  unList.dataset.subcatId="";
-  allVisible.filter(it=>!it.subcat).forEach(it=>{
-    const el=renderItem(it,cat.id);
-    el.dataset.subcatId="";
+  const unList = document.createElement("div");
+  unList.className = "list";
+  unList.dataset.catId = cat.id;
+  unList.dataset.subcatId = "";
+
+  unassignedItems.forEach(it => {
+    const el = renderItem(it, cat.id);
+    el.dataset.subcatId = "";
     unList.appendChild(el);
   });
-  unBox.append(unHead,unList);
+
+  unBox.append(unHead, unList);
   subWrap.appendChild(unBox);
+}
 
   // תתי־קטגוריות קיימות (כל אחת נפתחת/נסגרת בנפרד)
   cat.subcategories.forEach(sc=>{
