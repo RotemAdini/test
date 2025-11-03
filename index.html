@@ -514,7 +514,7 @@ function uniq(arr){return Array.from(new Set(arr));}
 function hasSubcats(cat){return Array.isArray(cat.subcategories)&&cat.subcategories.length>0;}
 
 /* ===== Tag Colors ===== */
-let board=loadBoard();
+
 function tagColors(tag){
   if(board.tagColors && board.tagColors[tag]){
     const c=board.tagColors[tag];
@@ -615,7 +615,7 @@ function loadBoard(){
     return structuredClone(DEFAULT_BOARD);
   }
 }
-
+let board=loadBoard();
 /* ===== Globals & Elements ===== */
 const boardEl=document.getElementById("board");
 const toggleAllBtn=document.getElementById("toggleAllBtn");
