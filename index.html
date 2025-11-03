@@ -1,144 +1,295 @@
 <!DOCTYPE html>
-
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>לוח ניהול עריכת סרטונים</title>
+
 <style>
-:root{--bg:#efe7ff;--card:#fff;--ink:#1b1033;--muted:#6a5d8f;--purple:#7b5cff;--purple-2:#5b3df7;--line:#ded3ff;--red:#ff4d4f;--yellow:#fdbc3d;--green:#31c655}
-*{box-sizing:border-box}html,body{height:100%;margin:0}
+/* ======= Theme ======= */
+:root{
+  --bg:#efe7ff;--card:#fff;--ink:#1b1033;--muted:#6a5d8f;
+  --purple:#7b5cff;--purple-2:#5b3df7;--line:#ded3ff;
+  --red:#ff4d4f;--yellow:#fdbc3d;--green:#31c655
+}
+
+/* ======= Resets ======= */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+img,svg,video{max-width:100%;height:auto;display:block}
+button{font:inherit}
+input,textarea,select{font:inherit;outline:none;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+
+/* ======= Layout ======= */
 .wrap{max-width:1100px;margin:0 auto;padding:24px}
 header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
 .title{font-size:clamp(20px,2.6vw,28px);font-weight:800}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,.btn{border:0;background:var(--purple);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700;box-shadow:0 2px 0 rgba(0,0,0,.08)}
-button:hover{background:var(--purple-2)}
+
+/* ======= Buttons ======= */
+button,.btn{
+  border:0;background:var(--purple);color:#fff;padding:10px 14px;border-radius:10px;
+  cursor:pointer;font-weight:700;box-shadow:0 2px 0 rgba(0,0,0,.08);transition:all .2s
+}
+button:hover{background:var(--purple-2);transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,0,0,.12)}
+button:active{transform:translateY(0)}
 .btn-outline{background:transparent;color:var(--purple);border:2px solid var(--purple);box-shadow:none}
 .btn-ghost{background:transparent;color:var(--muted)}
 .btn-danger{background:var(--red)}
+.small{font-size:12px;padding:6px 10px}
+
+/* ======= Controls / Filters ======= */
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .controls-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-input[type="text"],input[type="date"],select,textarea{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+input[type="text"],input[type="date"],input[type="color"],select,textarea{
+  padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink)
+}
+input[type="color"]{width:50px;height:38px;cursor:pointer;padding:2px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:600}
-.dot{width:10px;height:10px;border-radius:50%}.dot.red{background:var(--red)}.dot.yellow{background:var(--yellow)}.dot.green{background:var(--green)}
-.filters-panel{display:none;gap:6px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.red{background:var(--red)}.dot.yellow{background:var(--yellow)}.dot.green{background:var(--green)}
+.filters-panel{display:none;gap:6px;align-items:center;flex-wrap:wrap}
 .filters-panel.open{display:flex}
+.search-highlight{background:yellow;padding:2px 4px;border-radius:3px}
+.muted{color:var(--muted)}
 
+/* ======= Columns / Categories ======= */
 .board{display:flex;flex-direction:column;gap:10px}
-.col{background:var(–card);border:1px solid var(–line);border-radius:14px;overflow:hidden}
-.col-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f6f2ff;border-bottom:1px solid var(–line);user-select:none;position:relative}
-.col-title{display:flex;gap:8px;align-items:center;cursor:pointer}
-.col-header h3{margin:0;font-size:16px}
-.count{margin-inline-start:auto;color:var(–muted);font-weight:700;font-size:12px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:box-shadow .3s ease, transform .3s ease}
+.col:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.col-header{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f6f2ff;
+  border-bottom:1px solid var(--line);user-select:none;position:relative
+}
+.col-title{display:flex;gap:8px;align-items:center}
+.col-header h3{margin:0;font-size:16px;cursor:default}
+.count{margin-inline-start:auto;color:var(--muted);font-weight:700;font-size:12px}
 .header-actions{display:flex;gap:6px}
-.col .rename-btn{background:transparent;color:var(–muted)}
-.chev{transition:transform .2s}
+.col .rename-btn{background:transparent;color:var(--muted)}
+.chev{transition:transform .2s;cursor:pointer}
 .col.collapsed .chev{transform:rotate(180deg)}
-.col-header.drop-hover{outline:2px dashed var(–purple)}
-.list{display:grid;gap:8px;padding:12px;min-height:40px}
-.col.collapsed .list{display:none}
+.col-header.drop-hover{outline:2px dashed var(--purple)}
 
-/* סגנון מיוחד לקטגוריית המשימות */
+/* רשימת פריטים */
+.list{display:grid;gap:8px;padding:12px;min-height:40px}
+.list:empty{min-height:0;padding:8px 12px}
+.col.collapsed .list{display:none}
+.col.collapsed .subcats{display:none}
+
+/* הדגשת אזור רשימה כשגוררים מעליה */
+.list.dragover{outline:2px dashed var(--purple);outline-offset:4px}
+
+/* אזור צ'ק ליסט */
 .tasks-section{background:linear-gradient(135deg,#fff5e6 0%,#ffe8f5 100%);border:2px solid #ffd4e5}
 .tasks-section .col-header{background:linear-gradient(135deg,#fff9f0 0%,#fff0f8 100%)}
+/* פתיחה/סגירה למשימות */
+.tasks-section.collapsed .list{display:none}
+.tasks-section.collapsed .chev{transform:rotate(180deg)}
 
-.item{background:#fff;border:1px solid var(–line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 0 rgba(0,0,0,.04);position:relative}
-.item[draggable=“true”]{cursor:grab}.item.dragging{opacity:.6;cursor:grabbing}
-.item.drag-over-top::before{content:’’;position:absolute;top:-4px;left:0;right:0;height:3px;background:var(–purple);border-radius:2px}
-.item.drag-over-bottom::after{content:’’;position:absolute;bottom:-4px;left:0;right:0;height:3px;background:var(–purple);border-radius:2px}
+/* ======= Items ======= */
+.item{
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+  display:flex;align-items:center;gap:10px;box-shadow:0 2px 0 rgba(0,0,0,.04);position:relative;transition:all .2s
+}
+.item:hover{box-shadow:0 4px 8px rgba(0,0,0,.1);transform:translateY(-2px)}
+.item[draggable="true"]{cursor:grab}
+.item.dragging{opacity:.6;cursor:grabbing}
+.item.drag-over-top::before{content:'';position:absolute;top:-4px;left:0;right:0;height:3px;background:var(--purple);border-radius:2px}
+.item.drag-over-bottom::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:3px;background:var(--purple);border-radius:2px}
+.item.longpress-armed{outline:2px dashed var(--purple);outline-offset:2px}
 
-/* סגנון פריטי משימות */
-.task-item{background:linear-gradient(135deg,#fffcf7 0%,#fff8fd 100%);border:1px solid #ffe8f0;transition:all 0.3s ease}
-.task-item.completed{opacity:0.6;background:#f5f5f5}
-.task-item.completed .task-text{text-decoration:line-through;color:var(–muted)}
-.task-checkbox{width:24px;height:24px;cursor:pointer;accent-color:var(–purple);flex-shrink:0}
+/* כרטיסי משימות */
+.task-item{background:linear-gradient(135deg,#fffcf7 0%,#fff8fd 100%);border:1px solid #ffe8f0;transition:all .3s ease}
+.task-item.completed{opacity:.6;background:#f5f5f5}
+.task-item.completed .task-text{text-decoration:line-through;color:var(--muted)}
+.task-checkbox{width:24px;height:24px;cursor:pointer;accent-color:var(--purple);flex-shrink:0}
 .task-text{flex:1;min-width:0}
-.task-actions{display:flex;gap:4px;opacity:0.7}
+.task-actions{display:flex;gap:4px;opacity:.7;transition:opacity .2s}
 .task-item:hover .task-actions{opacity:1}
 
-.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;color:#222;background:#f8f8f8;border:1px solid var(–line)}
+/* תגים/דחיפות */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;color:#222;background:#f8f8f8;border:1px solid var(--line)}
 .badge.red{background:rgba(255,77,79,.14);border-color:#ffc7c8}
 .badge.yellow{background:rgba(253,188,61,.18);border-color:#ffe3b0}
 .badge.green{background:rgba(49,198,85,.16);border-color:#c7f0d4}
 .grow{flex:1;min-width:120px}
-.meta{color:var(–muted);font-size:12px}
-.actions{display:flex;gap:6px}
-.ghost{border:2px dashed var(–purple);background:#f6f2ff;border-radius:12px;height:42px;margin:0 12px 12px;display:none}
-.col.dragover .ghost{display:block}
-.muted{color:var(–muted)}.small{font-size:12px}
+.meta{color:var(--muted);font-size:12px;line-height:1.3}
+.actions{display:flex;gap:6px;align-items:center}
 
-/* מודאלים */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
-.modal{background:#fff;max-width:820px;width:100%;border-radius:12px;padding:16px;border:1px solid var(–line)}
-.modal header{justify-content:space-between;margin:0 0 12px}
+/* תגיות ליד העיפרון – לא שוברת שורה */
+.inline-tags{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;max-width:180px;overflow:hidden}
+.inline-tag{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #ddd;font-size:12px;white-space:nowrap;transition:transform .2s}
+.inline-tag:hover{transform:scale(1.05)}
+.inline-tag .remove-tag{cursor:pointer;margin-inline-start:4px;opacity:.6;transition:opacity .2s}
+.inline-tag .remove-tag:hover{opacity:1}
+
+/* פילטר תגיות */
+.tag-chips{display:flex;gap:6px;flex-wrap:wrap}
+.tag-chip{border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:#fff;font-weight:700;cursor:pointer;transition:transform .2s}
+.tag-chip:hover{transform:scale(1.05)}
+.tag-chip.active{outline:2px solid var(--purple)}
+
+/* ======= Modals ======= */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;
+  align-items:center;justify-content:center;padding:16px;z-index:1000;backdrop-filter:blur(2px)
+}
+.modal{
+  background:#fff;max-width:820px;width:100%;border-radius:12px;padding:16px;border:1px solid var(--line);
+  box-shadow:0 20px 60px rgba(0,0,0,.3)
+}
+.modal header{justify-content:space-between;margin:0 0 12px;display:flex;align-items:center}
 .modal textarea{width:100%;height:220px;font-family:monospace;direction:ltr}
-.modal .help{background:#faf8ff;border:1px dashed var(–line);padding:10px;border-radius:10px;font-size:12px}
 .editor .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .editor .label{font-weight:700;min-width:90px;align-self:center}
 .editor .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(–line);border-radius:999px;padding:6px 10px;background:#fff;cursor:pointer;font-weight:700}
-.chip.active{outline:2px solid var(–purple)}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:#fff;cursor:pointer;font-weight:700;transition:transform .2s}
+.chip:hover{transform:scale(1.05)}
+.chip.active{outline:2px solid var(--purple);background:#f0e7ff}
 .chip .dot{margin-inline-start:6px}
 .modal footer{display:flex;gap:8px;justify-content:flex-end;padding-top:8px}
 
-/* פופאבר מעבר מהיר */
-.quick-move{position:absolute;z-index:900;background:#fff;border:1px solid var(–line);border-radius:10px;padding:10px;box-shadow:0 6px 24px rgba(0,0,0,.15);display:none;min-width:230px}
+/* ======= Quick Move pop ======= */
+.quick-move{
+  position:absolute;z-index:900;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;
+  box-shadow:0 6px 24px rgba(0,0,0,.15);display:none;min-width:230px
+}
 .quick-move .title{font-weight:800;margin-bottom:8px}
 .quick-move .row{display:flex;gap:6px}
 .quick-move select{flex:1}
 
-/* מד התקדמות */
-.progress-wrap{background:#fff;border:1px solid var(–line);border-radius:12px;padding:10px;margin:6px 0 12px}
+/* ======= Progress ======= */
+.progress-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:6px 0 12px}
 .progress-head{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
-.progress-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(–muted)}
-.bar{width:100%;height:14px;border-radius:999px;background:#f1ecff;overflow:hidden;border:1px solid var(–line)}
-.bar-inner{height:100%;display:flex}
-.seg{height:100%}
-.seg.done{background:var(–green)}
+.progress-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.bar{width:100%;height:14px;border-radius:999px;background:#f1ecff;overflow:hidden;border:1px solid var(--line)}
+.bar-inner{height:100%;display:flex;transition:all .5s ease}
+.seg{height:100%;transition:width .5s ease}
+.seg.done{background:var(--green)}
 .seg.red{background:rgba(255,77,79,.5)}
 .seg.yellow{background:rgba(253,188,61,.6)}
 .seg.green{background:rgba(49,198,85,.5)}
 
+/* ======= Footer ======= */
 footer.page-footer{display:flex;justify-content:flex-end;gap:8px;margin:18px 0 6px}
 
-@media(max-width:700px){
-.controls{flex-direction:column;align-items:stretch}
-.wrap{padding:16px}
+/* ======= Tag Manager ======= */
+.tag-manager{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.tag-manager-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}
+.color-preview{width:20px;height:20px;border-radius:50%;border:2px solid var(--line)}
+
+/* ======= Stats row (4 cards) ======= */
+.stats-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:stretch}
+.stat-card{text-align:center;padding:8px 4px;border-radius:8px;background:linear-gradient(135deg,#f8f5ff 0%,#fff5f8 100%);box-shadow:0 2px 4px rgba(0,0,0,.08);transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.12)}
+.stat-number{font-size:20px;font-weight:800;color:var(--purple)}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+@media(max-width:420px){.stat-card{padding:6px 2px}.stat-number{font-size:18px}.stat-label{font-size:10px}}
+
+/* ======= Pop menu ======= */
+.menu-pop{
+  position:absolute;z-index:1100;background:#fff;border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;min-width:180px;padding:6px
+}
+.menu-pop.open{display:block}
+.menu-pop button{display:flex;width:100%;justify-content:flex-start;gap:8px;background:transparent;color:var(--ink);box-shadow:none;border-radius:8px;padding:8px}
+.menu-pop button:hover{background:#f6f2ff}
+
+/* ======= Drag helpers (cats) ======= */
+.cat-drag-ghost{opacity:.6}
+.col.drag-target-before{box-shadow:inset 0 4px 0 var(--purple)}
+.col.drag-target-after{box-shadow:inset 0 -4px 0 var(--purple)}
+
+/* ======= Responsive ======= */
+@media (max-width:700px){
+  .controls{flex-direction:column;align-items:stretch}
+  .wrap{padding:16px}
+  .stats-grid{grid-template-columns:repeat(4, minmax(0, 1fr))}
 }
 
-#toggleAllBtn,
-#toggleAllBtn:focus,
-#toggleAllBtn:active {
-background: transparent !important;
-color: var(–muted) !important;
-box-shadow: none !important;
-outline: none !important;
-}
+/* ======= Tiny tweaks ======= */
+#toggleAllBtn,#toggleAllBtn:focus,#toggleAllBtn:active{background:transparent!important;color:var(--muted)!important;box-shadow:none!important;outline:none!important}
+.btn-ghost:active,.btn-ghost:focus{background:transparent!important;box-shadow:none!important;outline:none!important}
 
-.btn-ghost:active,
-.btn-ghost:focus {
-background: transparent !important;
-box-shadow: none !important;
-outline: none !important;
+/* ==== מצב קומפקטי (class על <body>) ==== */
+body.compact .list{gap:6px}
+body.compact .item{padding:8px 10px;border-radius:10px;gap:8px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+body.compact .item:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.08)}
+body.compact .badge{padding:4px 8px;font-size:11px;border-radius:999px}
+body.compact .grow strong{font-size:15px}
+body.compact .meta{font-size:11px;line-height:1.25}
+body.compact .actions{gap:4px}
+body.compact .inline-tags{max-width:120px;gap:4px}
+body.compact .inline-tag{padding:3px 7px;font-size:11px}
+body.compact .inline-tag .remove-tag{margin-inline-start:2px}
+body.compact .dot{width:8px;height:8px}
+
+/* גם מחוץ למצב קומפקטי – עדין כברירת מחדל */
+.item{border-radius:12px}
+.grow strong{font-size:16px}
+.meta{line-height:1.3}
+
+/* כפתור מצב קומפקטי */
+#densityBtn.small{font-size:12px;padding:6px 10px}
+
+/* ======= Subcategories ======= */
+.subcats{display:grid;gap:10px;padding:12px}
+.subcat{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.subcat-header{
+  display:flex;align-items:center;gap:8px;justify-content:space-between;
+  padding:10px 12px;background:#faf7ff;border-bottom:1px solid var(--line)
+}
+.subcat-header h4{margin:0;font-size:14px}
+.subcat-tools{display:flex;gap:6px}
+.subcat-tools button{background:transparent;color:var(--muted);box-shadow:none;border-radius:8px;padding:6px}
+.subcat-tools button:hover{background:#f6f2ff}
+.subcat .chev{transition:transform .2s;cursor:pointer}
+.subcat.collapsed .chev{transform:rotate(180deg)}
+.subcat.collapsed .list{display:none}
+.inline-tag .remove-tag {
+  display: none !important;
 }
 </style>
-
 </head>
+
 <body>
 <div class="wrap">
   <header>
     <div class="title">לוח ניהול עריכת סרטונים 🎬</div>
     <div class="toolbar">
-      <button id="addVideoBtn">הוסף סרטון 🎬</button>
-      <button id="addCategoryBtn" class="btn-outline">הוסף קטגוריה ➕</button>
-      <button id="toggleAllBtn" class="btn-ghost small">פתח הכול</button>
+      <button id="addVideoBtn" type="button">הוסף סרטון 🎬</button>
+      <button id="addCategoryBtn" class="btn-outline" type="button">הוסף קטגוריה ➕</button>
+      <button id="manageTagsBtn" class="btn-outline" type="button">ניהול תגיות 🏷️</button>
+      <button id="toggleAllBtn" class="btn-ghost small" type="button">פתח הכול</button>
+      <button id="densityBtn" class="btn-ghost small" type="button">מצב קומפקטי</button>
     </div>
   </header>
 
-  <!-- מד התקדמות -->
+  <!-- פאנל סטטיסטיקות -->
+  <section id="statsPanel" class="stats-panel">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div id="statTotal" class="stat-number">0</div>
+        <div class="stat-label">סה"כ סרטונים</div>
+      </div>
+      <div class="stat-card">
+        <div id="statCompleted" class="stat-number">0</div>
+        <div class="stat-label">הושלמו</div>
+      </div>
+      <div class="stat-card">
+        <div id="statUrgent" class="stat-number">0</div>
+        <div class="stat-label">דחופים</div>
+      </div>
+      <div class="stat-card">
+        <div id="statTasks" class="stat-number">0</div>
+        <div class="stat-label">משימות פתוחות</div>
+      </div>
+    </div>
+  </section>
 
+  <!-- מד התקדמות -->
   <section id="progress" class="progress-wrap" aria-live="polite">
     <div class="progress-head">
       <div class="muted"><strong>מד התקדמות כללי</strong></div>
@@ -148,411 +299,831 @@ outline: none !important;
     <div id="progressLegend" class="progress-legend"></div>
   </section>
 
-  <!-- מסננים קומפקטיים -->
-
+  <!-- חיפוש ומסננים -->
   <div class="controls">
     <div class="controls-row" style="flex:1">
       <input id="searchInput" type="text" placeholder="חיפוש לפי שם סרטון..." style="flex:1"/>
-      <button id="toggleFilters" class="btn-ghost small" title="הצג/הסתר מסננים">מסננים ▾</button>
+      <button id="toggleFilters" class="btn-ghost small" title="הצג/הסתר מסננים" type="button">מסננים ▾</button>
     </div>
     <div id="filtersPanel" class="filters-panel">
       <label class="pill"><span class="dot red"></span><input type="checkbox" id="filterRed"/> דחוף</label>
       <label class="pill"><span class="dot yellow"></span><input type="checkbox" id="filterYellow"/> ביניים</label>
       <label class="pill"><span class="dot green"></span><input type="checkbox" id="filterGreen"/> יש זמן</label>
-      <div class="muted small">טיפ: גררי סרטון בין קטגוריות או בתוך הקטגוריה לסידור מחדש. לחיצה ארוכה על פריט → מעבר מהיר בין קטגוריות.</div>
+      <div class="muted small">טיפ: לחיצה ארוכה “מכשירה” גרירה של פריט או קטגוריה.</div>
+      <div style="flex-basis:100%;height:0"></div>
+      <div class="muted small"><strong>סינון לפי סיווגים:</strong></div>
+      <div id="tagsFilter" class="tag-chips"></div>
     </div>
   </div>
 
-  <!-- קטגוריית משימות -->
-
+  <!-- צ'ק-ליסט משימות -->
   <section id="tasksSection" class="col tasks-section" style="margin-bottom:16px">
     <div class="col-header" id="tasksHeader">
-      <div class="col-title">
-        <span class="chev">▾</span>
-        <h3>✅ משימות (צ'ק-ליסט)</h3>
-      </div>
+      <div class="col-title"><span class="chev" aria-label="פתח/סגור">▾</span><h3>✅ משימות (צ'ק-ליסט)</h3></div>
       <span id="tasksCount" class="count">0 משימות</span>
       <div class="header-actions">
-        <button id="addTaskBtn" class="btn-ghost small" title="הוסף משימה">➕</button>
+        <button id="addTaskBtn" class="btn-ghost small" title="הוסף משימה" type="button" aria-label="הוסף משימה">➕</button>
       </div>
     </div>
     <div id="tasksList" class="list"></div>
   </section>
 
+  <!-- לוח הקטגוריות -->
   <div id="board" class="board"></div>
 
-  <!-- כפתורי ייבוא/ייצוא לתחתית -->
-
   <footer class="page-footer">
-    <button id="exportBtn" class="btn-ghost small">ייצוא</button>
-    <button id="importBtn" class="btn-ghost small">ייבוא</button>
+    <button id="exportBtn" class="btn-ghost small" type="button">ייצוא</button>
+    <button id="importBtn" class="btn-ghost small" type="button">ייבוא</button>
   </footer>
 </div>
 
 <!-- מודאל ייבוא -->
-
-<div id="importModal" class="modal-backdrop">
+<div id="importModal" class="modal-backdrop" aria-hidden="true">
   <div class="modal">
-    <header><div class="title">ייבוא רשימת סרטונים</div><button id="closeImport" class="btn-ghost">✖</button></header>
-    <div class="help">הדביקי כאן JSON באחת מהצורות:<ol><li><b>Board מלא</b> עם <code>categories</code> ו-<code>items</code>.</li><li><b>מפה קצרה</b> של קטגוריה → מערך פריטים.</li></ol></div>
+    <header>
+      <div class="title">ייבוא רשימת סרטונים</div>
+      <button id="closeImport" class="btn-ghost" type="button" aria-label="סגור">✖</button>
+    </header>
+    <div class="help">
+      הדביקי כאן JSON:
+      <ol>
+        <li><b>Board מלא</b> עם <code>categories</code> ו-<code>items</code>.</li>
+        <li><b>מפה קצרה</b> של קטגוריה → מערך פריטים.</li>
+      </ol>
+    </div>
     <textarea id="importTextarea" placeholder='{"רעיונות":[{"title":"שם","priority":"red"}]}'></textarea>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button id="applyImport" class="btn">ייבוא</button></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="applyImport" class="btn" type="button">ייבוא</button>
+    </div>
   </div>
 </div>
 
-<!-- מודאל עריכת פריט -->
-
-<div id="editModal" class="modal-backdrop">
+<!-- מודאל עריכה -->
+<div id="editModal" class="modal-backdrop" aria-hidden="true">
   <div class="modal editor">
-    <header><div class="title">עריכת פריט</div><button id="closeEdit" class="btn-ghost">✖</button></header>
-    <div class="row"><div class="label">שם המשימה</div><input id="editTitleInput" type="text" placeholder="שם הפריט"></div>
-    <div class="row"><div class="label">דחיפות</div><div class="chips">
-      <button class="chip" data-pr="red"><span class="dot red"></span>דחוף</button>
-      <button class="chip" data-pr="yellow"><span class="dot yellow"></span>ביניים</button>
-      <button class="chip" data-pr="green"><span class="dot green"></span>יש זמן</button>
-    </div></div>
-    <div class="row"><div class="label">תאריך יעד</div><input id="editDueInput" type="date"></div>
-    <div class="row"><div class="label">קטגוריה</div><select id="editCategorySelect"></select></div>
-    <footer><button id="deleteItemBtn" class="btn btn-danger">מחקי</button><span style="flex:1"></span><button id="saveItemBtn" class="btn">שמירה</button></footer>
+    <header>
+      <div class="title">עריכת פריט</div>
+      <button id="closeEdit" class="btn-ghost" type="button" aria-label="סגור">✖</button>
+    </header>
+
+    <div class="row">
+      <div class="label">שם המשימה</div>
+      <input id="editTitleInput" type="text" placeholder="שם הפריט">
+    </div>
+
+    <div class="row">
+      <div class="label">דחיפות</div>
+      <div class="chips">
+        <button class="chip" data-pr="red" type="button"><span class="dot red"></span>דחוף</button>
+        <button class="chip" data-pr="yellow" type="button"><span class="dot yellow"></span>ביניים</button>
+        <button class="chip" data-pr="green" type="button"><span class="dot green"></span>יש זמן</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">תאריך יעד</div>
+      <input id="editDueInput" type="date">
+    </div>
+
+    <div class="row">
+      <div class="label">קטגוריה</div>
+      <select id="editCategorySelect"></select>
+    </div>
+
+    <div class="row" id="editSubcatRow" style="display:none">
+      <div class="label">תת־קטגוריה</div>
+      <select id="editSubcatSelect"></select>
+    </div>
+
+    <div class="row">
+      <div class="label">תגיות (סיווגים)</div>
+      <input id="editTagsInput" type="text" placeholder="דוגמה: דייטים א״ב, מצחיק">
+    </div>
+
+    <div class="row">
+      <div class="label">לינקים להשראה</div>
+      <textarea id="editInspirationInput" placeholder="שורה לכל קישור או פסיקים"></textarea>
+    </div>
+
+    <div class="row">
+      <div class="label">בגדים</div>
+      <input id="editOutfitRotem" type="text" placeholder="רותם: תיאור הבגד" style="flex:1"/>
+      <input id="editOutfitMeir" type="text" placeholder="מאיר: תיאור הבגד" style="flex:1"/>
+    </div>
+
+    <footer>
+      <button id="deleteItemBtn" class="btn btn-danger" type="button">מחקי</button>
+      <span style="flex:1"></span>
+      <button id="saveItemBtn" class="btn" type="button">שמירה</button>
+    </footer>
   </div>
 </div>
+
+<!-- מודאל מידע (קריאה בלבד) -->
+<div id="infoModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal">
+    <header>
+      <div class="title">פרטי פריט</div>
+      <button id="closeInfo" class="btn-ghost" type="button" aria-label="סגור">✖</button>
+    </header>
+    <div id="infoBody"></div>
+    <footer>
+      <button id="infoEditBtn" class="btn" type="button">עריכה</button>
+      <button id="infoCloseBtn" class="btn-ghost" type="button">סגור</button>
+    </footer>
+  </div>
+</div>
+
+<!-- מודאל ניהול תגיות -->
+<div id="tagsModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal">
+    <header>
+      <div class="title">ניהול תגיות וצבעים 🏷️</div>
+      <button id="closeTagsModal" class="btn-ghost" type="button" aria-label="סגור">✖</button>
+    </header>
+    <div style="margin-bottom:12px">
+      <p class="muted small">כאן תוכלי להגדיר צבע מותאם אישית לכל תג. אם לא תגדירי, הצבע יהיה אוטומטי.</p>
+    </div>
+    <div id="tagsManagerList" class="tag-manager"></div>
+    <footer>
+      <button id="closeTagsModalBtn" class="btn" type="button">סגור</button>
+    </footer>
+  </div>
+</div>
+
+<!-- מודאל חדש: הוספת קטגוריה/תת־קטגוריה -->
+<div id="addCatModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal">
+    <header>
+      <div class="title">הוספת קטגוריה / תת־קטגוריה</div>
+      <button id="closeAddCatModal" class="btn-ghost" type="button" aria-label="סגור">✖</button>
+    </header>
+
+    <div class="editor">
+      <div class="row">
+        <div class="label">מה להוסיף?</div>
+        <div class="chips" role="group" aria-label="סוג הוספה">
+          <button class="chip active" data-add-type="category" id="addTypeCategory" type="button">קטגוריה</button>
+          <button class="chip" data-add-type="subcat" id="addTypeSubcat" type="button">תת־קטגוריה</button>
+        </div>
+      </div>
+
+      <div class="row" id="addCatParentRow" style="display:none">
+        <div class="label">בקטגוריה</div>
+        <select id="addCatParentSelect"></select>
+      </div>
+
+      <div class="row">
+        <div class="label">שם</div>
+        <input id="addCatNameInput" type="text" placeholder="שם הקטגוריה / תת־הקטגוריה">
+      </div>
+    </div>
+
+    <footer>
+      <button id="createAddCatBtn" class="btn" type="button">יצירה</button>
+    </footer>
+  </div>
+</div>
+
+<!-- תפריט קטגוריה / פריט -->
+<div id="menuPop" class="menu-pop" role="menu" aria-hidden="true"></div>
 
 <script>
-/* ===== נתונים ושמירה ===== */
-const STORAGE_KEY="video-board-v4";
-function uid(){return Math.random().toString(36).slice(2,9)}
+/* ===== Polyfills & Utils ===== */
+if(typeof structuredClone!=='function'){window.structuredClone=obj=>JSON.parse(JSON.stringify(obj));}
 
+const STORAGE_KEY="video-board-v6";
+function uid(){return Math.random().toString(36).slice(2,9)}
+function escapeHTML(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
+function normPriority(p){const m={"אדום":"red","דחוף":"red",red:"red","צהוב":"yellow","ביניים":"yellow",yellow:"yellow","ירוק":"green","יש זמן":"green",green:"green"};return m[(p||"").toLowerCase()]||"green"}
+function priorityLabel(p){return p==="red"?"דחוף":p==="yellow"?"ביניים":"יש זמן"}
+function todayStr(){const d=new Date(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${d.getFullYear()}-${m}-${day}`}
+function isValidDateStr(s){return/^\d{4}-\d{2}-\d{2}$/.test(s||"")}
+/* תאריך קצר DD.MM.YY לתצוגת הכרטיס */
+function formatDue(due){
+  if(!due) return "";
+  const parts=(due||"").split("-");
+  if(parts.length!==3) return due;
+  const[yyyy,mm,dd]=parts;
+  return `${dd}.${mm}.${String(yyyy).slice(-2)}`;
+}
+function hashStr(str){let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return Math.abs(h);}
+function splitLinks(text){return (text||"").split(/\n|,|;|\s+/).map(s=>s.trim()).filter(Boolean);}
+function uniq(arr){return Array.from(new Set(arr));}
+function hasSubcats(cat){return Array.isArray(cat.subcategories)&&cat.subcategories.length>0;}
+
+/* ===== Tag Colors ===== */
+let board=loadBoard();
+function tagColors(tag){
+  if(board.tagColors && board.tagColors[tag]){
+    const c=board.tagColors[tag];
+    return{bg:c,border:c,text:'#000'};
+  }
+  const h=hashStr(tag)%360;
+  const bg=`hsl(${h} 90% 92%)`;
+  const bd=`hsl(${h} 70% 75%)`;
+  const tx=`hsl(${h} 50% 30%)`;
+  return{bg,border:bd,text:tx};
+}
+
+/* ===== Default Data ===== */
 const DEFAULT_BOARD={
   tasks:[],
+  tagColors:{},
   categories:[
-    {id:uid(),title:"רעיונות",collapsed:false,items:[
-      {id:uid(),title:"ה – החלקה על הקרח",priority:"green",due:""},
-      {id:uid(),title:"ט – טניס",priority:"green",due:""},
-      {id:uid(),title:"י – סיור טעימות יין (יקב שורר)",priority:"green",due:""},
-      {id:uid(),title:"כ – דייט כוכבים",priority:"green",due:""},
-      {id:uid(),title:"ל – לגו / מסעדה שווה",priority:"green",due:""},
-      {id:uid(),title:"מ – משחקי קופסא בבית",priority:"green",due:""},
-      {id:uid(),title:"נ – הכנת וצביעת נרות",priority:"green",due:""},
-      {id:uid(),title:"ס – ספארי לילה / סטנד אפ",priority:"green",due:""},
-      {id:uid(),title:"ע – עיסוי זוגי",priority:"green",due:""},
-      {id:uid(),title:"פ – ערב פיצות בצורת לב",priority:"green",due:""},
-      {id:uid(),title:"צ – ציור על קנבס (אפשר ציורי אצבעות)",priority:"green",due:""},
-      {id:uid(),title:"ק – קולנוע VIP",priority:"green",due:""},
-      {id:uid(),title:"ר – דייט רביצה בבית (פופים ושטיחים)",priority:"green",due:""},
-      {id:uid(),title:"ש – סדנת שוקולד",priority:"green",due:""},
-      {id:uid(),title:"ת – ללכת לתיאטרון",priority:"green",due:""}
-    ]},
+    {
+      id: uid(),
+      title: "רעיונות",
+      collapsed: false,
+      subcategories: [
+        { id: uid(), title: "דייטים א-ב" },
+        { id: uid(), title: "מצחיק" },
+        { id: uid(), title: "מתכון" }
+      ],
+      items: [
+        {id:uid(),title:"ה – החלקה על הקרח",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ט – טניס",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"י – סיור טעימות יין (יקב שורר)",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"כ – דייט כוכבים",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ל – לגו / מסעדה שווה",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"מ – משחקי קופסא בבית",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"נ – הכנת וצביעת נרות",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ס – ספארי לילה / סטנד אפ",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ע – עיסוי זוגי",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"פ – ערב פיצות בצורת לב",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"צ – ציור על קנבס (אפשר ציורי אצבעות)",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ק – קולנוע VIP",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ר – דייט רביצה בבית (פופים ושטיחים)",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ש – סדנת שוקולד",priority:"green",due:"",tags:[]},
+        {id:uid(),title:"ת – ללכת לתיאטרון",priority:"green",due:"",tags:[]}
+      ]
+    },
     {id:uid(),title:"נקבע תאריך",collapsed:false,items:[
-      {id:uid(),title:"א – סדנת אוכל איטלקי",priority:"green",due:""},
-      {id:uid(),title:"ו – ויז'ן בורד",priority:"green",due:""},
-      {id:uid(),title:"ח – דייט חימר",priority:"green",due:""}
+      {id:uid(),title:"א – סדנת אוכל איטלקי",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ו – ויז'ן בורד",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ח – דייט חימר",priority:"green",due:"",tags:[]}
     ]},
     {id:uid(),title:"צילמנו",collapsed:false,items:[
-      {id:uid(),title:"ב – בירה פונג",priority:"green",due:""},
-      {id:uid(),title:"ד – ארוחת דגים",priority:"green",due:""},
-      {id:uid(),title:"טעימות בראוניז",priority:"green",due:""},
-      {id:uid(),title:"שאלות בראוניז",priority:"green",due:""}
+      {id:uid(),title:"ב – בירה פונג",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ד – ארוחת דגים",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"טעימות בראוניז",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"שאלות בראוניז",priority:"green",due:"",tags:[]}
     ]},
     {id:uid(),title:"עריכה בסיסית",collapsed:false,items:[
-      {id:uid(),title:"הכנת בראוניז",priority:"green",due:""},
-      {id:uid(),title:"ג – דייט גבינות חלק 1",priority:"green",due:""},
-      {id:uid(),title:"ג – דייט גבינות חלק 2 פיקניק",priority:"green",due:""},
-      {id:uid(),title:"ז – דייט בזריחה (טיול שטח + זריחה)",priority:"green",due:""}
+      {id:uid(),title:"הכנת בראוניז",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ג – דייט גבינות חלק 1",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ג – דייט גבינות חלק 2 פיקניק",priority:"green",due:"",tags:[]},
+      {id:uid(),title:"ז – דייט בזריחה (טיול שטח + זריחה)",priority:"green",due:"",tags:[]}
     ]},
     {id:uid(),title:"מוכן לעלייה",collapsed:false,items:[
-      {id:uid(),title:"פוב: חבר שלך רציני בערבוב גבינות",priority:"green",due:""}
+      {id:uid(),title:"פוב: חבר שלך רציני בערבוב גבינות",priority:"green",due:"",tags:[]}
     ]},
     {id:uid(),title:"עלה",collapsed:false,items:[]}
   ]
 };
 
-let board=loadBoard();
-
-function saveBoard(){localStorage.setItem(STORAGE_KEY,JSON.stringify(board))}
-
+/* ===== Persistence ===== */
+function saveBoard(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(board)); }
 function loadBoard(){
   try{
-    const r=localStorage.getItem(STORAGE_KEY);
-    if(!r)return structuredClone(DEFAULT_BOARD);
-    const p=JSON.parse(r);
-    if(!p.categories)p.categories=structuredClone(DEFAULT_BOARD.categories);
-    if(!p.tasks)p.tasks=[];
-    return p;
+    const r = localStorage.getItem(STORAGE_KEY);
+    const data = r ? JSON.parse(r) : structuredClone(DEFAULT_BOARD);
+
+    if(!data.tagColors) data.tagColors = {};
+    if(!Array.isArray(data.tasks)) data.tasks = [];
+
+    (data.categories || []).forEach(c=>{
+      c.subcategories = Array.isArray(c.subcategories) ? c.subcategories : [];
+      c.subcategories = c.subcategories.map(sc=>({
+        id: sc.id||uid(),
+        title: sc.title||"",
+        collapsed: !!sc.collapsed
+      }));
+      if (typeof c.unCollapsed !== 'boolean') c.unCollapsed = true; // 'ללא תת־קטגוריה' ברירת מחדל פתוח
+      const validSub = new Set(c.subcategories.map(sc=>sc.id));
+      (c.items||[]).forEach(it=>{
+        if(!Array.isArray(it.tags)) it.tags=[];
+        if(!Array.isArray(it.inspirationLinks)) it.inspirationLinks=[];
+        if(!it.outfits) it.outfits={rotem:"",meir:""};
+        if(it.subcat && !validSub.has(it.subcat)) it.subcat=null;
+      });
+    });
+
+    return data;
   }catch(e){
     return structuredClone(DEFAULT_BOARD);
   }
 }
 
-/* ===== עזר ===== */
-function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
-function normPriority(p){const m={"אדום":"red","דחוף":"red",red:"red","צהוב":"yellow","ביניים":"yellow",yellow:"yellow","ירוק":"green","יש זמן":"green",green:"green"};return m[(p||"").toLowerCase()]||"green"}
-function priorityLabel(p){return p==="red"?"דחוף":p==="yellow"?"ביניים":"יש זמן"}
-
-/* ===== UI ===== */
+/* ===== Globals & Elements ===== */
 const boardEl=document.getElementById("board");
 const toggleAllBtn=document.getElementById("toggleAllBtn");
 const tasksSection=document.getElementById("tasksSection");
 const tasksHeader=document.getElementById("tasksHeader");
 const tasksList=document.getElementById("tasksList");
 const tasksCount=document.getElementById("tasksCount");
+const menuPop=document.getElementById("menuPop");
 
+/* Add Category/Subcategory Modal Elements */
+const addCategoryBtn=document.getElementById("addCategoryBtn");
+const addCatModal=document.getElementById("addCatModal");
+const closeAddCatModal=document.getElementById("closeAddCatModal");
+const addTypeCategory=document.getElementById("addTypeCategory");
+const addTypeSubcat=document.getElementById("addTypeSubcat");
+const addCatParentRow=document.getElementById("addCatParentRow");
+const addCatParentSelect=document.getElementById("addCatParentSelect");
+const addCatNameInput=document.getElementById("addCatNameInput");
+const createAddCatBtn=document.getElementById("createAddCatBtn");
+
+/* ===== Render ===== */
 function render(){
+  const today=todayStr();
+  board.categories.forEach(c=>(c.items||[]).forEach(it=>{
+    if(isValidDateStr(it.due)&&it.due<today){it.priority="red";}
+  }));
   renderTasks();
   boardEl.innerHTML="";
   board.categories.forEach(c=>boardEl.appendChild(renderCategory(c)));
-  attachDnD();
+  attachDnDForItems();
+  attachDnDForCategories();
   updateToggleAllLabel();
   renderProgress();
+  renderTagFilterChips();
+  renderStats();
 }
 
-/* ===== משימות (צ'ק-ליסט) ===== */
+function renderStats(){
+  let total=0,completed=0,urgent=0;
+  const openTasks=board.tasks.filter(t=>!t.completed).length;
+  board.categories.forEach(c=>{
+    if(c.title==="עלה"||c.title==="מוכן לעלייה")completed+=c.items.length;
+    total+=c.items.length;
+    c.items.forEach(it=>{if(it.priority==="red")urgent++;});
+  });
+  document.getElementById("statTotal").textContent=total;
+  document.getElementById("statCompleted").textContent=completed;
+  document.getElementById("statUrgent").textContent=urgent;
+  document.getElementById("statTasks").textContent=openTasks;
+}
+
 function renderTasks(){
   tasksList.innerHTML="";
   tasksCount.textContent=`${board.tasks.length} משימות`;
-  
   board.tasks.forEach(task=>{
     const el=document.createElement("div");
-    el.className="item task-item" + (task.completed?" completed":"");
+    el.className="item task-item"+(task.completed?" completed":"");
     el.dataset.taskId=task.id;
-    
     const checkbox=document.createElement("input");
     checkbox.type="checkbox";
     checkbox.className="task-checkbox";
     checkbox.checked=task.completed||false;
     checkbox.addEventListener("change",()=>{
       task.completed=checkbox.checked;
-      saveBoard();
-      renderTasks();
+      saveBoard();renderTasks();renderStats();
     });
-    
     const text=document.createElement("div");
     text.className="task-text";
     text.innerHTML=`<strong>${escapeHTML(task.title)}</strong>`;
-    
     const actions=document.createElement("div");
     actions.className="task-actions";
-    
     const editBtn=document.createElement("button");
     editBtn.className="btn-ghost small";
     editBtn.textContent="✏️";
-    editBtn.title="עריכה";
-    editBtn.addEventListener("click",()=>editTask(task.id));
-    
-    const delBtn=document.createElement("button");
-    delBtn.className="btn-ghost small";
-    delBtn.textContent="🗑️";
-    delBtn.title="מחיקה";
-    delBtn.addEventListener("click",()=>{
-      if(confirm(`למחוק את "${task.title}"?`)){
-        board.tasks=board.tasks.filter(t=>t.id!==task.id);
-        saveBoard();
-        renderTasks();
-      }
+    editBtn.title="עריכה / מחיקה";
+    editBtn.setAttribute('aria-label','עריכה או מחיקה');
+    editBtn.addEventListener("click",()=>{
+      const newTitle=prompt("עריכת משימה (השאירי ריק למחיקה):",task.title);
+      if(newTitle===null)return;
+      const v=(newTitle||"").trim();
+      if(!v){
+        if(confirm(`למחוק את "${task.title}"?`)){
+          board.tasks=board.tasks.filter(t=>t.id!==task.id);
+          saveBoard();renderTasks();renderStats();
+        }
+      }else{task.title=v;saveBoard();renderTasks();}
     });
-    
-    actions.append(editBtn,delBtn);
+    actions.append(editBtn);
     el.append(checkbox,text,actions);
     tasksList.appendChild(el);
   });
 }
 
-function editTask(taskId){
-  const task=board.tasks.find(t=>t.id===taskId);
-  if(!task)return;
-  
-  const newTitle=prompt("שם המשימה:",task.title);
-  if(newTitle===null)return;
-  
-  task.title=newTitle.trim()||task.title;
-  saveBoard();
-  renderTasks();
-}
-
-// הוספת משימה חדשה
-document.getElementById("addTaskBtn").addEventListener("click",()=>{
-  const title=prompt("שם המשימה:");
-  if(!title)return;
-  
-  board.tasks.push({
-    id:uid(),
-    title:title.trim(),
-    completed:false
-  });
-  
-  saveBoard();
-  renderTasks();
-});
-
-// פתיחה/סגירה של קטגוריית המשימות
-tasksHeader.addEventListener("click",()=>{
-  tasksSection.classList.toggle("collapsed");
-});
-
-/* קטגוריה */
+/* ===== Category (with Subcats) ===== */
 function renderCategory(cat){
   const col=document.createElement("section");
-  col.className="col"+(cat.collapsed?" collapsed":""); 
+  col.className="col"+(cat.collapsed?" collapsed":"");
   col.dataset.catId=cat.id;
 
-  const header=document.createElement("div"); 
+  const header=document.createElement("div");
   header.className="col-header";
+  header.setAttribute("draggable","true");
+  header.addEventListener("click",(e)=>{
+    if (e.target.closest(".header-actions") || e.target.classList.contains("chev")) return;
+    cat.collapsed=!cat.collapsed;
+    saveBoard(); render();
+  });
 
-  const titleWrap=document.createElement("div"); 
+  const titleWrap=document.createElement("div");
   titleWrap.className="col-title";
-  const chev=document.createElement("span"); 
-  chev.className="chev"; 
+
+  const chev=document.createElement("span");
+  chev.className="chev";
   chev.textContent="▾";
-  const h3=document.createElement("h3"); 
-  h3.textContent=cat.title; 
+  chev.title="פתח/סגור קטגוריה";
+  chev.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    cat.collapsed=!cat.collapsed;
+    saveBoard();render();
+  });
+
+  const h3=document.createElement("h3");
+  h3.textContent=cat.title;
   h3.title="לחצי פעמיים לשינוי שם";
+  h3.addEventListener("dblclick",(e)=>{e.stopPropagation();renameCategory(cat.id);});
+
   titleWrap.append(chev,h3);
 
-  titleWrap.addEventListener("click",(e)=>{ 
-    if(e.detail===1){ 
-      cat.collapsed=!cat.collapsed; 
-      saveBoard(); 
-      render(); 
-    }
-  });
-  h3.addEventListener("dblclick",(e)=>{ 
-    e.stopPropagation(); 
-    renameCategory(cat.id); 
-  });
-
-  const list=document.createElement("div"); 
-  list.className="list";
   const f=currentFilters();
-  const visibleItems = cat.items.filter(item=>passesFilters(item,f));
-  const count=document.createElement("span"); 
-  count.className="count";
-  count.textContent=visibleItems.length+" פריטים";
+  const allVisible=cat.items.filter(item=>passesFilters(item,f));
 
-  const headerActions=document.createElement("div"); 
+  const count=document.createElement("span");
+  count.className="count";
+
+  const headerActions=document.createElement("div");
   headerActions.className="header-actions";
+
+  // ניהול דרך התפריט
   const renameBtn=document.createElement("button");
   renameBtn.className="rename-btn btn-ghost small";
   renameBtn.textContent="✏️";
-  renameBtn.title="שינוי שם קטגוריה";
+  renameBtn.title="תפריט קטגוריה";
+  renameBtn.setAttribute('aria-label','תפריט קטגוריה');
   renameBtn.addEventListener("click",(e)=>{
-    e.stopPropagation(); 
-    renameCategory(cat.id);
+    e.stopPropagation();
+    openCategoryMenu(e.currentTarget,cat);
   });
-  headerActions.append(renameBtn);
 
+  headerActions.append(renameBtn);
   header.append(titleWrap,count,headerActions);
 
-  visibleItems.forEach(item=>{ 
-    list.appendChild(renderItem(item,cat.id)); 
+  if(!hasSubcats(cat)){
+    const list=document.createElement("div");
+    list.className="list";
+    list.dataset.catId=cat.id;
+    list.dataset.subcatId="";
+    allVisible.forEach(item=>{
+      const el=renderItem(item,cat.id);
+      el.dataset.subcatId=item.subcat||"";
+      list.appendChild(el);
+    });
+    col.append(header,list,document.createElement("div"));
+    count.textContent=allVisible.length+" פריטים";
+    setupHeaderDrop(header,cat);
+    return col;
+  }
+
+  // יש תתי־קטגוריות
+  const subWrap=document.createElement("div");
+  subWrap.className="subcats";
+
+  // 'ללא תת־קטגוריה'
+  const unBox=document.createElement("section");
+  unBox.className="subcat"+(cat.unCollapsed ? "" : " collapsed");
+
+  const unHead=document.createElement("div");
+  unHead.className="subcat-header";
+  unHead.innerHTML='<h4>ללא תת־קטגוריה</h4><span class="chev" title="פתח/סגור">▾</span>';
+  unHead.addEventListener("click",()=>{
+    cat.unCollapsed=!cat.unCollapsed;
+    saveBoard(); render();
   });
 
-  const ghost=document.createElement("div"); 
-  ghost.className="ghost";
-  col.append(header,list,ghost);
+  const unList=document.createElement("div");
+  unList.className="list";
+  unList.dataset.catId=cat.id;
+  unList.dataset.subcatId="";
+  allVisible.filter(it=>!it.subcat).forEach(it=>{
+    const el=renderItem(it,cat.id);
+    el.dataset.subcatId="";
+    unList.appendChild(el);
+  });
+  unBox.append(unHead,unList);
+  subWrap.appendChild(unBox);
+
+  // תתי־קטגוריות קיימות (כל אחת נפתחת/נסגרת בנפרד)
+  cat.subcategories.forEach(sc=>{
+    const box=document.createElement("section");
+    box.className="subcat"+(sc.collapsed ? " collapsed" : "");
+
+    const head=document.createElement("div");
+    head.className="subcat-header";
+
+    const h4=document.createElement("h4");
+    h4.textContent=sc.title;
+
+    const chev=document.createElement("span");
+    chev.className="chev";
+    chev.textContent="▾";
+    chev.title="פתח/סגור תת־קטגוריה";
+
+    const tools=document.createElement("div");
+    tools.className="subcat-tools";
+
+    const btnRename=document.createElement("button");
+    btnRename.type="button";
+    btnRename.textContent="✏️";
+    btnRename.title="שינוי שם תת־קטגוריה";
+    btnRename.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      renameSubcategory(cat.id, sc.id);
+    });
+
+    const btnDel=document.createElement("button");
+    btnDel.type="button";
+    btnDel.textContent="🗑️";
+    btnDel.title="מחיקת תת־קטגוריה (הפריטים יעברו ל'ללא')";
+    btnDel.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      deleteSubcategory(cat.id, sc.id);
+    });
+
+    tools.append(btnRename, btnDel);
+
+    head.addEventListener("click",()=>{
+      sc.collapsed=!sc.collapsed;
+      saveBoard(); render();
+    });
+
+    head.append(h4, tools, chev);
+
+    const list=document.createElement("div");
+    list.className="list";
+    list.dataset.catId=cat.id;
+    list.dataset.subcatId=sc.id;
+
+    allVisible
+      .filter(it=>it.subcat===sc.id)
+      .forEach(it=>{
+        const el=renderItem(it,cat.id);
+        el.dataset.subcatId=sc.id;
+        list.appendChild(el);
+      });
+
+    box.append(head,list);
+    subWrap.appendChild(box);
+  });
+
+  const totalShown=subWrap.querySelectorAll(".item").length;
+  count.textContent=totalShown+" פריטים";
+
+  col.append(header,subWrap,document.createElement("div"));
   setupHeaderDrop(header,cat);
   return col;
 }
 
 function renameCategory(catId){
-  const cat=board.categories.find(c=>c.id===catId); 
-  if(!cat) return;
+  const cat=board.categories.find(c=>c.id===catId);
+  if(!cat)return;
   const name=prompt("שם חדש לקטגוריה:",cat.title);
-  if(!name) return;
-  cat.title=name.trim()||cat.title;
-  saveBoard(); 
-  render();
+  if(name===null)return;
+  const v=name.trim();
+  if(v){cat.title=v; saveBoard(); render();}
 }
 
-/* פריט */
+/* ===== Subcategory Management ===== */
+function addSubcategory(catId,name){
+  const cat=board.categories.find(c=>c.id===catId); if(!cat)return;
+  const title=(name||"").trim() || prompt("שם תת־קטגוריה חדש:") || "";
+  if(!title.trim()) return;
+  cat.subcategories = cat.subcategories || [];
+  cat.subcategories.push({id:uid(), title:title.trim(), collapsed:false});
+  saveBoard(); render();
+}
+function renameSubcategory(catId, subId){
+  const cat=board.categories.find(c=>c.id===catId); if(!cat)return;
+  const sc=cat.subcategories.find(s=>s.id===subId); if(!sc)return;
+  const name=prompt("שם חדש לתת־קטגוריה:", sc.title);
+  if(!name) return;
+  sc.title=name.trim();
+  saveBoard(); render();
+}
+function deleteSubcategory(catId, subId){
+  const cat=board.categories.find(c=>c.id===catId); if(!cat)return;
+  if(!confirm("למחוק את תת־הקטגוריה? הפריטים יעברו ל'ללא תת־קטגוריה'.")) return;
+  (cat.items||[]).forEach(it=>{ if(it.subcat===subId) it.subcat=null; });
+  cat.subcategories = (cat.subcategories||[]).filter(s=>s.id!==subId);
+  saveBoard(); render();
+}
+
+/* ===== Items ===== */
 function renderItem(item,catId){
-  const el=document.createElement("div"); 
-  el.className="item"; 
-  el.draggable=true;
-  el.dataset.itemId=item.id; 
+  const el=document.createElement("div");
+  el.className="item";
+  el.setAttribute("draggable","true");
+  el.dataset.itemId=item.id;
   el.dataset.catId=catId;
+  el.dataset.subcatId=item.subcat||"";
 
   const pr=item.priority||"green";
-  const badge=document.createElement("span"); 
+  const badge=document.createElement("span");
   badge.className="badge "+pr;
   badge.innerHTML=`<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
 
-  const title=document.createElement("div"); 
+  const title=document.createElement("div");
   title.className="grow";
-  title.innerHTML=`<div><strong>${escapeHTML(item.title)}</strong></div><div class="meta">${item.due?"תאריך יעד: "+item.due:"ללא תאריך יעד"}</div>`;
 
-  const actions=document.createElement("div"); 
+  const searchQ=currentFilters().q;
+  let titleText=escapeHTML(item.title);
+  if(searchQ){
+    const re=new RegExp(`(${searchQ.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')})`,'gi');
+    titleText=titleText.replace(re,`<span class="search-highlight">$1</span>`);
+  }
+
+  const dueShort = item.due ? `תאריך יעד: ${formatDue(item.due)}` : "ללא תאריך יעד";
+  const outfits = item.outfits || {rotem:"",meir:""};
+  title.innerHTML = `
+    <div><strong>${titleText}</strong></div>
+    <div class="meta">${dueShort}</div>
+    <div class="meta">רותם: ${escapeHTML(outfits.rotem || "—")}</div>
+    <div class="meta">מאיר: ${escapeHTML(outfits.meir || "—")}</div>
+  `;
+
+  const actions=document.createElement("div");
   actions.className="actions";
-  const editBtn=document.createElement("button"); 
-  editBtn.className="btn-ghost"; 
-  editBtn.textContent="✏️"; 
-  editBtn.title="עריכה";
-  editBtn.addEventListener("click",()=>openEditModal(catId,item.id));
-  const delBtn=document.createElement("button"); 
-  delBtn.className="btn-ghost"; 
-  delBtn.textContent="🗑️"; 
-  delBtn.title="מחיקה";
-  delBtn.addEventListener("click",()=>{
-    if(confirm(`למחוק את "${item.title}"?`)){
-      board.categories.find(c=>c.id===catId).items=board.categories.find(c=>c.id===catId).items.filter(it=>it.id!==item.id);
-      saveBoard();
-      render();
-    }
-  });
-  actions.append(editBtn,delBtn);
 
+  const tagsInline=document.createElement("div");
+  tagsInline.className="inline-tags";
+  (item.tags||[]).forEach(t=>{
+    const span=document.createElement("span");
+    span.className="inline-tag";
+    const {bg,border,text}=tagColors(t);
+    span.style.background=bg;
+    span.style.borderColor=border;
+    span.style.color=text;
+    span.innerHTML=`${escapeHTML(t)} <span class="remove-tag" title="הסר תג" aria-label="הסר תג">✕</span>`;
+    span.querySelector(".remove-tag").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      item.tags=item.tags.filter(tag=>tag!==t);
+      saveBoard(); render();
+    });
+    tagsInline.appendChild(span);
+  });
+
+  const editBtn=document.createElement("button");
+  editBtn.className="btn-ghost";
+  editBtn.textContent="✏️";
+  editBtn.title="פעולות";
+  editBtn.setAttribute('aria-label','פעולות');
+  editBtn.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    openItemMenu(e.currentTarget,catId,item.id);
+  });
+
+  actions.append(tagsInline,editBtn);
   el.append(badge,title,actions);
 
-  const qm=document.createElement("div"); 
+  el.addEventListener("click",(e)=>{
+    if(e.target.closest(".actions")||e.target.closest(".inline-tag")) return;
+    openInfoModal(catId,item.id);
+  });
+
+  const qm=document.createElement("div");
   qm.className="quick-move";
-  qm.innerHTML='<div class="title">מעבר מהיר</div><div class="row"><select class="qm-select"></select><button class="btn">העברי</button></div>';
-  el.appendChild(qm); 
-  setupLongPress(el,qm,catId,item.id);
+  qm.innerHTML='<div class="title">מעבר מהיר</div><div class="row"><select class="qm-select"></select><button class="btn" type="button">העברי</button></div>';
+  el.appendChild(qm);
+  setupQuickMoveLongPress(el,qm,catId,item.id);
   return el;
 }
 
-/* הוספה/קטגוריה */
+/* ===== Add Buttons ===== */
 document.getElementById("addVideoBtn").addEventListener("click",()=>{
-  const t=prompt("שם הסרטון:");
-  if(!t)return;
+  const t=prompt("שם הסרטון:");if(!t)return;
   const pr=prompt("דחיפות (red/yellow/green)?","green");
   const d=prompt("תאריך יעד (YYYY-MM-DD):","");
   const cn=board.categories.map((c,i)=>`${i+1}. ${c.title}`).join("\n");
   let idx=parseInt(prompt("לאיזו קטגוריה?\n"+cn,"1")||"1",10)-1;
-  (board.categories[idx]||board.categories[0]).items.push({
-    id:uid(),
-    title:t.trim(),
-    priority:normPriority(pr),
-    due:d||""
+  const cat=(board.categories[idx]||board.categories[0]);
+  cat.items.push({
+    id:uid(),title:t.trim(),priority:normPriority(pr),due:d||"",tags:[],
+    inspirationLinks:[],outfits:{rotem:"",meir:""},subcat:null
   });
-  saveBoard();
-  render();
+  saveBoard();render();
 });
 
-document.getElementById("addCategoryBtn").addEventListener("click",()=>{
-  const n=prompt("שם הקטגוריה:");
-  if(n){
-    board.categories.push({
-      id:uid(),
-      title:n.trim(),
-      collapsed:false,
-      items:[]
-    });
+/* הוספת משימה לצ'קליסט */
+const addTaskBtn = document.getElementById("addTaskBtn");
+if (addTaskBtn) {
+  addTaskBtn.addEventListener("click", () => {
+    const title = (prompt("שם המשימה:") || "").trim();
+    if (!title) return;
+    board.tasks.push({ id: uid(), title, completed: false });
     saveBoard();
-    render();
+    renderTasks();
+    renderStats();
+  });
+}
+
+/* פתיחה/סגירה של בלוק המשימות */
+if (tasksHeader) {
+  tasksHeader.addEventListener("click", (e) => {
+    if (e.target.closest(".header-actions")) return;
+    tasksSection.classList.toggle("collapsed");
+  });
+}
+
+/* ===== Add Category/Subcategory Modal Wiring ===== */
+function openAddCatModal(type){
+  // type: 'category' | 'subcat'
+  addCatNameInput.value="";
+  // כפתורי סוג
+  [addTypeCategory, addTypeSubcat].forEach(b=>b.classList.remove("active"));
+  if(type==='subcat'){ addTypeSubcat.classList.add("active"); }
+  else { addTypeCategory.classList.add("active"); }
+
+  // הצגת/מילוי בחירת הורה
+  const wantSub = (type==='subcat');
+  addCatParentRow.style.display = wantSub ? "flex" : "none";
+  addCatParentSelect.innerHTML="";
+  if(wantSub){
+    board.categories.forEach(c=>{
+      const o=document.createElement("option");
+      o.value=c.id; o.textContent=c.title;
+      addCatParentSelect.appendChild(o);
+    });
   }
+  addCatModal.style.display="flex";
+  setTimeout(()=>addCatNameInput.focus(),0);
+}
+
+addCategoryBtn.addEventListener("click",()=>openAddCatModal('category'));
+addTypeCategory.addEventListener("click",()=>{ addTypeCategory.classList.add("active"); addTypeSubcat.classList.remove("active"); addCatParentRow.style.display="none"; });
+addTypeSubcat.addEventListener("click",()=>{
+  addTypeSubcat.classList.add("active"); addTypeCategory.classList.remove("active");
+  addCatParentRow.style.display="flex";
+  addCatParentSelect.innerHTML="";
+  board.categories.forEach(c=>{
+    const o=document.createElement("option"); o.value=c.id; o.textContent=c.title; addCatParentSelect.appendChild(o);
+  });
+});
+closeAddCatModal.addEventListener("click",()=>addCatModal.style.display="none");
+
+createAddCatBtn.addEventListener("click",()=>{
+  const isSub = addTypeSubcat.classList.contains("active");
+  const name = (addCatNameInput.value||"").trim();
+  if(!name){ alert("צריך שם."); return; }
+  if(isSub){
+    const parentId = addCatParentSelect.value;
+    const parent = board.categories.find(c=>c.id===parentId);
+    if(!parent){ alert("בחרי קטגוריה."); return; }
+    addSubcategory(parentId, name);
+  }else{
+    const id=uid();
+    board.categories.push({id,title:name,collapsed:false,items:[],subcategories:[],unCollapsed:true});
+    saveBoard(); render();
+    requestAnimationFrame(()=>{
+      const el=document.querySelector(`.col[data-cat-id="${id}"]`);
+      if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+    });
+  }
+  addCatModal.style.display="none";
 });
 
-/* מודאל עריכת פריט */
+/* ===== Edit Modal ===== */
 const editModal=document.getElementById("editModal");
 const closeEdit=document.getElementById("closeEdit");
 const editTitleInput=document.getElementById("editTitleInput");
 const editDueInput=document.getElementById("editDueInput");
 const editCategorySelect=document.getElementById("editCategorySelect");
+const editSubcatRow=document.getElementById("editSubcatRow");
+const editSubcatSelect=document.getElementById("editSubcatSelect");
+const editTagsInput=document.getElementById("editTagsInput");
+const editInspirationInput=document.getElementById("editInspirationInput");
+const editOutfitRotem=document.getElementById("editOutfitRotem");
+const editOutfitMeir=document.getElementById("editOutfitMeir");
 const saveItemBtn=document.getElementById("saveItemBtn");
 const deleteItemBtn=document.getElementById("deleteItemBtn");
 const chipButtons=()=>Array.from(document.querySelectorAll('.editor .chip'));
-
 let editCtx={catId:null,itemId:null,pr:"green"};
+
+function populateSubcatsFor(catId, currentSubcat){
+  const cat=board.categories.find(c=>c.id===catId);
+  editSubcatSelect.innerHTML="";
+  if(!cat || !hasSubcats(cat)){
+    editSubcatRow.style.display="none";
+    return;
+  }
+  editSubcatRow.style.display="flex";
+  const oNone=document.createElement("option");
+  oNone.value=""; oNone.textContent="— ללא תת־קטגוריה —";
+  editSubcatSelect.appendChild(oNone);
+  cat.subcategories.forEach(sc=>{
+    const o=document.createElement("option");
+    o.value=sc.id; o.textContent=sc.title;
+    if(currentSubcat===sc.id) o.selected=true;
+    editSubcatSelect.appendChild(o);
+  });
+}
 
 function openEditModal(catId,itemId){
   editCtx={catId,itemId};
@@ -560,21 +1131,30 @@ function openEditModal(catId,itemId){
   const item=cat.items.find(i=>i.id===itemId);
   editTitleInput.value=item.title||"";
   editDueInput.value=item.due||"";
+  editTagsInput.value=Array.isArray(item.tags)?item.tags.join(", "):"";
+  editInspirationInput.value=(item.inspirationLinks||[]).join("\n");
+  editOutfitRotem.value=(item.outfits&&item.outfits.rotem)||"";
+  editOutfitMeir.value=(item.outfits&&item.outfits.meir)||"";
   editCtx.pr=item.priority||"green";
   chipButtons().forEach(b=>b.classList.toggle('active',b.dataset.pr===editCtx.pr));
+
   editCategorySelect.innerHTML="";
   board.categories.forEach(c=>{
     const o=document.createElement("option");
-    o.value=c.id;
-    o.textContent=c.title;
-    if(c.id===catId)o.selected=true;
+    o.value=c.id;o.textContent=c.title;if(c.id===catId)o.selected=true;
     editCategorySelect.appendChild(o);
   });
+
+  populateSubcatsFor(catId, item.subcat||"");
+
   editModal.style.display="flex";
 }
 
-closeEdit.addEventListener("click",()=>editModal.style.display="none");
+editCategorySelect.addEventListener("change",()=>{
+  populateSubcatsFor(editCategorySelect.value, "");
+});
 
+closeEdit.addEventListener("click",()=>editModal.style.display="none");
 document.querySelectorAll('.editor .chip').forEach(b=>b.addEventListener("click",()=>{
   editCtx.pr=b.dataset.pr;
   chipButtons().forEach(x=>x.classList.toggle('active',x===b));
@@ -587,82 +1167,164 @@ saveItemBtn.addEventListener("click",()=>{
   item.title=editTitleInput.value.trim()||"ללא שם";
   item.due=editDueInput.value||"";
   item.priority=editCtx.pr;
+  item.tags=uniq((editTagsInput.value||"").split(",").map(s=>s.trim()).filter(Boolean));
+  item.inspirationLinks=uniq(splitLinks(editInspirationInput.value));
+  item.outfits=item.outfits||{rotem:"",meir:""};
+  item.outfits.rotem=(editOutfitRotem.value||"").trim();
+  item.outfits.meir=(editOutfitMeir.value||"").trim();
+
   if(toCatId!==editCtx.catId){
+    const chosenSub = editSubcatRow.style.display!=="none" ? (editSubcatSelect.value||null) : null;
     fromCat.items=fromCat.items.filter(i=>i.id!==item.id);
+    item.subcat = chosenSub;
     board.categories.find(c=>c.id===toCatId).items.push(item);
+  }else{
+    item.subcat = editSubcatRow.style.display!=="none" ? (editSubcatSelect.value||null) : null;
   }
-  saveBoard();
-  editModal.style.display="none";
-  render();
+
+  saveBoard();editModal.style.display="none";render();
 });
 
 deleteItemBtn.addEventListener("click",()=>{
   if(confirm("למחוק?")){
-    board.categories.find(c=>c.id===editCtx.catId).items=board.categories.find(c=>c.id===editCtx.catId).items.filter(i=>i.id!==editCtx.itemId);
-    saveBoard();
-    editModal.style.display="none";
-    render();
+    board.categories.find(c=>c.id===editCtx.catId).items=
+      board.categories.find(c=>c.id===editCtx.catId).items.filter(i=>i.id!==editCtx.itemId);
+    saveBoard();editModal.style.display="none";render();
   }
 });
 
-/* סינון קומפקטי */
+/* ===== Info Modal (Read Only) ===== */
+const infoModal=document.getElementById("infoModal");
+const infoBody=document.getElementById("infoBody");
+const infoCloseBtn=document.getElementById("infoCloseBtn");
+const closeInfo=document.getElementById("closeInfo");
+const infoEditBtn=document.getElementById("infoEditBtn");
+let infoCtx={catId:null,itemId:null};
+
+function openInfoModal(catId,itemId){
+  infoCtx={catId,itemId};
+  const cat=board.categories.find(c=>c.id===catId);
+  const item=cat.items.find(i=>i.id===itemId);
+  const prClass=item.priority||"green";
+  const links=(item.inspirationLinks||[]);
+  const outfits=item.outfits||{rotem:"",meir:""};
+  infoBody.innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <span class="badge ${prClass}"><span class="dot ${prClass}"></span>${priorityLabel(prClass)}</span>
+      <strong style="font-size:16px">${escapeHTML(item.title)}</strong>
+    </div>
+    <div class="meta" style="margin-bottom:8px;">${item.due?("תאריך יעד: "+escapeHTML(item.due)):"ללא תאריך יעד"}</div>
+    ${(item.tags&&item.tags.length)?(`<div class="meta" style="margin-bottom:8px;">תגיות: ${item.tags.map(escapeHTML).join(" • ")}</div>`):""}
+    <div style="margin:10px 0;">
+      <div class="muted"><strong>לינקים להשראה</strong></div>
+      ${links.length?(`<ul style="margin:6px 0 0 0;padding-inline-start:20px;">${links.map(h=>`<li><a href="${escapeHTML(h)}" target="_blank" rel="noopener">${escapeHTML(h)}</a></li>`).join("")}</ul>`):`<div class="meta">—</div>`}
+    </div>
+    <div style="margin:10px 0;">
+      <div class="muted"><strong>בגדים</strong></div>
+      <div class="meta">רותם: ${outfits.rotem?escapeHTML(outfits.rotem):"—"}</div>
+      <div class="meta">מאיר: ${outfits.meir?escapeHTML(outfits.meir):"—"}</div>
+    </div>
+  `;
+  infoModal.style.display="flex";
+}
+[infoCloseBtn,closeInfo].forEach(btn=>btn.addEventListener("click",()=>infoModal.style.display="none"));
+infoEditBtn.addEventListener("click",()=>{
+  infoModal.style.display="none";
+  openEditModal(infoCtx.catId,infoCtx.itemId);
+});
+
+/* ===== Search & Filters ===== */
 const searchInput=document.getElementById("searchInput");
 ["keyup","change"].forEach(ev=>searchInput.addEventListener(ev,debounce(()=>render(),150)));
 ["filterRed","filterYellow","filterGreen"].forEach(id=>document.getElementById(id).addEventListener("change",()=>render()));
 
+let activeTagFilter=new Set();
 function currentFilters(){
   return{
     q:(searchInput.value||"").toLowerCase().trim(),
     red:document.getElementById("filterRed").checked,
     yellow:document.getElementById("filterYellow").checked,
-    green:document.getElementById("filterGreen").checked
+    green:document.getElementById("filterGreen").checked,
+    tags:new Set(activeTagFilter)
   };
 }
-
 function passesFilters(item,f){
-  const byText=!f.q||item.title.toLowerCase().includes(f.q);
+  const byText=!f.q||(item.title||"").toLowerCase().includes(f.q);
   const anyColor=f.red||f.yellow||f.green;
   const byColor=!anyColor||(item.priority==="red"&&f.red)||(item.priority==="yellow"&&f.yellow)||(item.priority==="green"&&f.green);
-  return byText&&byColor;
+  const byTags=f.tags.size===0||(Array.isArray(item.tags)&&item.tags.some(t=>f.tags.has(t)));
+  return byText&&byColor&&byTags;
 }
 
 const toggleFiltersBtn=document.getElementById("toggleFilters");
 const filtersPanel=document.getElementById("filtersPanel");
-
+const tagsFilterEl=document.getElementById("tagsFilter");
 toggleFiltersBtn.addEventListener("click",()=>{
   filtersPanel.classList.toggle("open");
   toggleFiltersBtn.textContent=filtersPanel.classList.contains("open")?"מסננים ▴":"מסננים ▾";
 });
+function renderTagFilterChips(){
+  const all=new Set();
+  board.categories.forEach(c=>(c.items||[]).forEach(it=>{(it.tags||[]).forEach(t=>all.add(t));}));
+  const arr=[...all].sort((a,b)=>a.localeCompare(b,'he'));
+  tagsFilterEl.innerHTML="";
+  if(arr.length===0){
+    const none=document.createElement("div");none.className="muted small";
+    none.textContent="אין תגיות עדיין (אפשר להוסיף בעריכת פריט).";
+    tagsFilterEl.appendChild(none);return;
+  }
+  arr.forEach(tag=>{
+    const chip=document.createElement("button");
+    chip.className="tag-chip"+(activeTagFilter.has(tag)?" active":"");
+    const{bg,border,text}=tagColors(tag);
+    chip.style.background=bg;chip.style.borderColor=border;chip.style.color=text;
+    chip.textContent=tag;
+    chip.addEventListener("click",()=>{
+      if(activeTagFilter.has(tag))activeTagFilter.delete(tag);
+      else activeTagFilter.add(tag);
+      render();
+    });
+    tagsFilterEl.appendChild(chip);
+  });
+}
 
-/* פתח/סגור הכל – כפתור אחד */
+/* ===== Toggle All ===== */
 toggleAllBtn.addEventListener("click",()=>{
   const anyCollapsed=board.categories.some(c=>c.collapsed);
   board.categories.forEach(c=>c.collapsed=!anyCollapsed);
-  saveBoard();
-  render();
+  saveBoard();render();
 });
-
 function updateToggleAllLabel(){
   toggleAllBtn.textContent=board.categories.some(c=>c.collapsed)?"פתח הכול":"סגור הכול";
 }
 
-/* DnD */
-let dragState={itemId:null,fromCat:null,hoverTimer:null,draggedEl:null};
+/* ===== Drag & Drop – Items ===== */
+let dragState={itemId:null,fromCat:null,hoverTimer:null,draggedEl:null,dragCatId:null};
 
-function attachDnD(){
+function attachDnDForItems(){
   document.querySelectorAll(".item").forEach(el=>{
     el.addEventListener("dragstart",e=>{
       el.classList.add("dragging");
-      dragState={itemId:el.dataset.itemId,fromCat:el.dataset.catId,draggedEl:el};
+      dragState.itemId=el.dataset.itemId;
+      dragState.fromCat=el.dataset.catId;
+      dragState.draggedEl=el;
       e.dataTransfer.effectAllowed="move";
-      e.dataTransfer.setData('text/plain', el.dataset.itemId);
+      e.dataTransfer.setData('text/plain',el.dataset.itemId);
+      // תאימות ל-Safari/Firefox
+      if(e.dataTransfer.setDragImage){
+        const gi=el.cloneNode(true);
+        gi.style.position="absolute";gi.style.top="-9999px";gi.style.pointerEvents="none";gi.style.opacity="0.8";
+        document.body.appendChild(gi);
+        e.dataTransfer.setDragImage(gi, 10, 10);
+        setTimeout(()=>document.body.removeChild(gi),0);
+      }
       hideAnyQuickMove();
     });
     el.addEventListener("dragend",()=>{
       el.classList.remove("dragging");
       document.querySelectorAll(".item").forEach(i=>i.classList.remove("drag-over-top","drag-over-bottom"));
       dragState={};
-      document.querySelectorAll(".col,.col-header").forEach(x=>x.classList.remove("dragover","drop-hover"));
+      document.querySelectorAll(".col,.col-header,.list").forEach(x=>x.classList.remove("dragover","drop-hover","drag-target-before","drag-target-after"));
     });
     el.addEventListener("dragover",e=>{
       e.preventDefault();
@@ -674,85 +1336,141 @@ function attachDnD(){
     });
     el.addEventListener("dragleave",()=>el.classList.remove("drag-over-top","drag-over-bottom"));
     el.addEventListener("drop",e=>{
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault();e.stopPropagation();
       el.classList.remove("drag-over-top","drag-over-bottom");
       if(el.dataset.catId===dragState.fromCat){
+        const targetSub=el.dataset.subcatId||"";
+        const cat=board.categories.find(c=>c.id===dragState.fromCat);
+        const it=cat.items.find(i=>i.id===dragState.itemId);
+        if(it && (it.subcat||"")!==targetSub){ it.subcat = targetSub || null; }
         const rect=el.getBoundingClientRect();
         reorderItemInCategory(dragState.fromCat,dragState.itemId,el.dataset.itemId,e.clientY<rect.top+rect.height/2);
       }
     });
   });
-  
-  document.querySelectorAll(".col").forEach(col=>{
-    const list=col.querySelector(".list");
-    list.addEventListener("dragover",e=>{
-      e.preventDefault();
-      col.classList.add("dragover");
-    });
-    list.addEventListener("dragleave",()=>col.classList.remove("dragover"));
+
+  document.querySelectorAll(".list").forEach(list=>{
+    list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("dragover");});
+    list.addEventListener("dragleave",()=>list.classList.remove("dragover"));
     list.addEventListener("drop",e=>{
-      e.preventDefault();
-      col.classList.remove("dragover");
-      if(col.dataset.catId!==dragState.fromCat)moveItem(dragState.fromCat,col.dataset.catId,dragState.itemId);
+      e.preventDefault();list.classList.remove("dragover");
+      const targetCatId = list.dataset.catId;
+      const targetSub = list.dataset.subcatId || "";
+      if(!dragState.itemId) return;
+
+      if(targetCatId!==dragState.fromCat){
+        const from=board.categories.find(c=>c.id===dragState.fromCat);
+        const to=board.categories.find(c=>c.id===targetCatId);
+        if(!from||!to) return;
+        const idx=from.items.findIndex(i=>i.id===dragState.itemId);
+        if(idx===-1) return;
+        const [itm]=from.items.splice(idx,1);
+        itm.subcat = targetSub || null;
+        to.items.push(itm);
+        saveBoard(); render();
+      }else{
+        const cat=board.categories.find(c=>c.id===targetCatId);
+        const it=cat.items.find(i=>i.id===dragState.itemId);
+        if(it){ it.subcat = targetSub || null; saveBoard(); render(); }
+      }
     });
   });
 }
 
 function reorderItemInCategory(catId,draggedItemId,targetItemId,insertBefore){
-  const cat=board.categories.find(c=>c.id===catId);
-  if(!cat)return;
+  const cat=board.categories.find(c=>c.id===catId);if(!cat)return;
   const dIdx=cat.items.findIndex(i=>i.id===draggedItemId);
   const tIdx=cat.items.findIndex(i=>i.id===targetItemId);
   if(dIdx===-1||tIdx===-1||dIdx===tIdx)return;
   const[item]=cat.items.splice(dIdx,1);
-  cat.items.splice(insertBefore?cat.items.findIndex(i=>i.id===targetItemId):cat.items.findIndex(i=>i.id===targetItemId)+1,0,item);
-  saveBoard();
-  render();
+  const insertIndex = cat.items.findIndex(i=>i.id===targetItemId)+(insertBefore?0:1);
+  cat.items.splice(insertIndex,0,item);
+  saveBoard();render();
 }
 
+/* ===== Drag & Drop – Categories ===== */
+function attachDnDForCategories(){
+  document.querySelectorAll(".col-header").forEach(header=>{
+    header.addEventListener("dragstart",e=>{
+      if(!header.hasAttribute("draggable")){e.preventDefault();return;}
+      const col=header.closest(".col");
+      col.classList.add("cat-drag-ghost");
+      dragState.dragCatId=col.dataset.catId;
+      e.dataTransfer.setData('text/plain',dragState.dragCatId);
+      e.dataTransfer.effectAllowed="move";
+      closeMenu();
+    });
+    header.addEventListener("dragend",()=>{
+      const col=header.closest(".col");
+      col.classList.remove("cat-drag-ghost");
+      document.querySelectorAll(".col").forEach(c=>c.classList.remove("drag-target-before","drag-target-after"));
+      dragState.dragCatId=null;
+    });
+  });
+
+  const cols=Array.from(document.querySelectorAll(".col"));
+  cols.forEach(col=>{
+    col.addEventListener("dragover",e=>{
+      if(!dragState.dragCatId){return;}
+      e.preventDefault();
+      const rect=col.getBoundingClientRect();
+      const before=e.clientY < rect.top + rect.height/2;
+      col.classList.toggle("drag-target-before",before);
+      col.classList.toggle("drag-target-after",!before);
+    });
+    col.addEventListener("dragleave",()=>{col.classList.remove("drag-target-before","drag-target-after");});
+    col.addEventListener("drop",e=>{
+      e.preventDefault();
+      if(!dragState.dragCatId)return;
+      const targetId=col.dataset.catId;
+      const rect=col.getBoundingClientRect();
+      const before=e.clientY < rect.top + rect.height/2;
+      reorderCategories(dragState.dragCatId,targetId,before);
+    });
+  });
+}
+function reorderCategories(draggedCatId,targetCatId,insertBefore){
+  if(draggedCatId===targetCatId)return;
+  const list=board.categories;
+  const dIdx=list.findIndex(c=>c.id===draggedCatId);
+  const tIdx=list.findIndex(c=>c.id===targetCatId);
+  if(dIdx===-1||tIdx===-1)return;
+  const [dragged]=list.splice(dIdx,1);
+  const newIndex = list.findIndex(c=>c.id===targetCatId)+(insertBefore?0:1);
+  list.splice(newIndex,0,dragged);
+  saveBoard(); render();
+}
+
+/* ===== Header Drop for expanding while dragging items ===== */
 function setupHeaderDrop(header,cat){
   header.addEventListener("dragover",e=>{
-    e.preventDefault();
-    header.classList.add("drop-hover");
-    if(cat.collapsed&&!dragState.hoverTimer)dragState.hoverTimer=setTimeout(()=>{
-      cat.collapsed=false;
-      saveBoard();
-      render();
-    },500);
+    e.preventDefault();header.classList.add("drop-hover");
+    if(cat.collapsed&&!dragState.hoverTimer)dragState.hoverTimer=setTimeout(()=>{cat.collapsed=false;saveBoard();render();},500);
   });
-  header.addEventListener("dragleave",()=>{
-    header.classList.remove("drop-hover");
-    clearTimeout(dragState.hoverTimer);
-    dragState.hoverTimer=null;
-  });
+  header.addEventListener("dragleave",()=>{header.classList.remove("drop-hover");clearTimeout(dragState.hoverTimer);dragState.hoverTimer=null;});
   header.addEventListener("drop",e=>{
-    e.preventDefault();
-    header.classList.remove("drop-hover");
-    clearTimeout(dragState.hoverTimer);
-    dragState.hoverTimer=null;
-    moveItem(dragState.fromCat,cat.id,dragState.itemId);
+    e.preventDefault();header.classList.remove("drop-hover");clearTimeout(dragState.hoverTimer);dragState.hoverTimer=null;
+    if(dragState.itemId) moveItem(dragState.fromCat,cat.id,dragState.itemId);
   });
 }
 
+/* ===== Move Item Between Categories ===== */
 function moveItem(fromCatId,toCatId,itemId){
   if(!fromCatId||!toCatId||!itemId||fromCatId===toCatId)return;
   const from=board.categories.find(c=>c.id===fromCatId);
   const to=board.categories.find(c=>c.id===toCatId);
   if(!from||!to)return;
-  const idx=from.items.findIndex(i=>i.id===itemId);
-  if(idx===-1)return;
-  to.items.push(from.items.splice(idx,1)[0]);
-  saveBoard();
-  render();
+  const idx=from.items.findIndex(i=>i.id===itemId);if(idx===-1)return;
+  const it=from.items.splice(idx,1)[0];
+  it.subcat=null;
+  to.items.push(it);
+  saveBoard();render();
 }
 
-/* ייבוא/ייצוא */
+/* ===== Import / Export ===== */
 const importModal=document.getElementById("importModal");
-
 document.getElementById("importBtn").addEventListener("click",()=>importModal.style.display="flex");
 document.getElementById("closeImport").addEventListener("click",()=>importModal.style.display="none");
-
 document.getElementById("applyImport").addEventListener("click",()=>{
   const txt=document.getElementById("importTextarea").value.trim();
   if(!txt)return alert("לא הוזן תוכן");
@@ -762,150 +1480,101 @@ document.getElementById("applyImport").addEventListener("click",()=>{
       p.categories.forEach(cat=>{
         cat.id=cat.id||uid();
         cat.collapsed=!!cat.collapsed;
-        cat.items=(cat.items||[]).map(it=>({
-          id:it.id||uid(),
-          title:it.title||"",
-          priority:normPriority(it.priority),
-          due:it.due||""
-        }));
+        cat.subcategories = Array.isArray(cat.subcategories)
+          ? cat.subcategories.map(sc=>({id:sc.id||uid(), title:sc.title||"", collapsed: !!sc.collapsed}))
+          : [];
+        const validSub=new Set(cat.subcategories.map(sc=>sc.id));
+        cat.items=(cat.items||[]).map(it=>{
+          const sub = (it.subcat && validSub.has(it.subcat)) ? it.subcat : null;
+          return {
+            id:it.id||uid(),
+            title:it.title||"",
+            priority:normPriority(it.priority),
+            due:it.due||"",
+            tags:Array.isArray(it.tags)?it.tags:[],
+            inspirationLinks:Array.isArray(it.inspirationLinks)?it.inspirationLinks:splitLinks(it.inspirationLinks||""),
+            outfits:it.outfits?{rotem:it.outfits.rotem||"",meir:it.outfits.meir||""}:{rotem:"",meir:""},
+            subcat: sub
+          };
+        });
       });
       board=p;
       if(!board.tasks)board.tasks=[];
+      if(!board.tagColors)board.tagColors={};
     }else{
-      board={
-        tasks:[],
-        categories:Object.keys(p).map(name=>({
-          id:uid(),
-          title:name,
-          collapsed:false,
-          items:(p[name]||[]).map(it=>({
-            id:uid(),
-            title:it.title||"",
-            priority:normPriority(it.priority),
-            due:it.due||""
-          }))
+      board={tasks:[],tagColors:{},categories:Object.keys(p).map(name=>({
+        id:uid(),title:name,collapsed:false,subcategories:[],unCollapsed:true,
+        items:(p[name]||[]).map(it=>({
+          id:uid(),title:it.title||"",priority:normPriority(it.priority),due:it.due||"",
+          tags:Array.isArray(it.tags)?it.tags:[],
+          inspirationLinks:[],outfits:{rotem:"",meir:""},subcat:null
         }))
-      };
+      }))};
     }
-    saveBoard();
-    importModal.style.display="none";
-    render();
-  }catch(e){
-    alert("JSON לא תקין");
-  }
+    saveBoard();importModal.style.display="none";render();
+  }catch(e){alert("JSON לא תקין");}
 });
-
 document.getElementById("exportBtn").addEventListener("click",()=>{
   const d=JSON.stringify(board,null,2);
-  try{
-    navigator.clipboard.writeText(d);
-    alert("הועתק ללוח");
-  }catch{
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([d],{type:"application/json"}));
-    a.download="video-board.json";
-    a.click();
-  }
+  try{navigator.clipboard.writeText(d);alert("הועתק ללוח");}
+  catch{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([d],{type:"application/json"}));a.download="video-board.json";a.click();}
 });
 
-/* לחיצה ארוכה – מעבר מהיר */
-function setupLongPress(el,qm,catId,itemId){
-  let timer=null;
-  let startX=0,startY=0;
+/* ===== Quick Move (long-press separate from drag) ===== */
+function setupQuickMoveLongPress(el,qm,catId,itemId){
+  let timer=null;let startX=0,startY=0;
   const start=(e)=>{
-    const p=e.touches?e.touches[0]:e;
-    startX=p.clientX;
-    startY=p.clientY;
+    const p=e.touches?e.touches[0]:e;startX=p.clientX;startY=p.clientY;
     timer=setTimeout(()=>{
-      const sel=qm.querySelector(".qm-select");
-      sel.innerHTML="";
+      const sel=qm.querySelector(".qm-select");sel.innerHTML="";
       board.categories.forEach(c=>{
-        const o=document.createElement("option");
-        o.value=c.id;
-        o.textContent=c.title;
-        if(c.id===catId)o.selected=true;
-        sel.appendChild(o);
+        const o=document.createElement("option");o.value=c.id;o.textContent=c.title;if(c.id===catId)o.selected=true;sel.appendChild(o);
       });
-      qm.style.display="block";
-      qm.style.top=el.offsetTop+6+"px";
-      qm.style.insetInlineStart=(el.offsetWidth-qm.offsetWidth-6)+"px";
-      const btn=qm.querySelector("button");
-      btn.onclick=()=>{
-        const toCatId=sel.value;
-        qm.style.display="none";
-        moveItem(catId,toCatId,itemId);
-      };
-      const outsideClose=(ev)=>{
-        if(!qm.contains(ev.target))qm.style.display="none";
-      };
-      setTimeout(()=>{
-        document.addEventListener("mousedown",outsideClose,{once:true});
-        document.addEventListener("touchstart",outsideClose,{once:true,passive:true});
-      },0);
+      qm.style.display="block";qm.style.top=el.offsetTop+6+"px";
+      const left=Math.max(6,el.offsetWidth - qm.offsetWidth - 6);
+      qm.style.insetInlineStart=left+"px";
+      const btn=qm.querySelector("button");btn.onclick=()=>{const toCatId=sel.value;qm.style.display="none";moveItem(catId,toCatId,itemId);};
+      const outsideClose=(ev)=>{if(!qm.contains(ev.target))qm.style.display="none";};
+      setTimeout(()=>{document.addEventListener("mousedown",outsideClose,{once:true});document.addEventListener("touchstart",outsideClose,{once:true,passive:true});},0);
     },700);
   };
-  const cancel=()=>{
-    clearTimeout(timer);
-    timer=null;
-  };
-  el.addEventListener("mousedown",start);
-  el.addEventListener("mouseup",cancel);
-  el.addEventListener("mouseleave",cancel);
-  el.addEventListener("touchstart",start,{passive:true});
-  el.addEventListener("touchend",cancel);
-  el.addEventListener("touchmove",(e)=>{
-    const t=e.touches[0];
-    if(Math.hypot(t.clientX-startX,t.clientY-startY)>12)cancel();
-  },{passive:true});
+  const cancel=()=>{clearTimeout(timer);timer=null;};
+  el.addEventListener("contextmenu",e=>e.preventDefault());
+  el.addEventListener("mousedown",start);el.addEventListener("mouseup",cancel);el.addEventListener("mouseleave",cancel);
+  el.addEventListener("touchstart",start,{passive:true});el.addEventListener("touchend",cancel);
+  el.addEventListener("touchmove",(e)=>{const t=e.touches[0];if(Math.hypot(t.clientX-startX,t.clientY-startY)>12)cancel();},{passive:true});
 }
+function hideAnyQuickMove(){document.querySelectorAll(".quick-move").forEach(q=>q.style.display="none");}
 
-function hideAnyQuickMove(){
-  document.querySelectorAll(".quick-move").forEach(q=>q.style.display="none");
-}
-
-/* מד התקדמות */
+/* ===== Progress ===== */
 function renderProgress(){
   const excludeTitle="עלה";
   const doneTitle="מוכן לעלייה";
-  let total=0, done=0, red=0, yellow=0, green=0;
-  
+  let total=0,done=0,red=0,yellow=0,green=0;
   board.categories.forEach(c=>{
-    if(c.title===excludeTitle) return;
-    if(c.title===doneTitle){ 
-      done+=c.items.length; 
-      total+=c.items.length; 
-    }else{
+    if(c.title===excludeTitle)return;
+    if(c.title===doneTitle){done+=c.items.length;total+=c.items.length;}
+    else{
       total+=c.items.length;
       c.items.forEach(it=>{
-        if(it.priority==="red") red++;
-        else if(it.priority==="yellow") yellow++;
+        if(it.priority==="red")red++;
+        else if(it.priority==="yellow")yellow++;
         else green++;
       });
     }
   });
-  
   const barInner=document.getElementById("barInner");
   const legend=document.getElementById("progressLegend");
   const nums=document.getElementById("progressNumbers");
-  const pct=(n)=> total? Math.max(0,Math.min(100,(n/total)*100)) : 0;
-
+  const pct=(n)=>total?Math.max(0,Math.min(100,(n/total)*100)):0;
   barInner.innerHTML="";
-  const segDone=document.createElement("div"); 
-  segDone.className="seg done"; 
-  segDone.style.width=pct(done)+"%";
-  const segRed=document.createElement("div"); 
-  segRed.className="seg red"; 
-  segRed.style.width=pct(red)+"%";
-  const segY=document.createElement("div"); 
-  segY.className="seg yellow"; 
-  segY.style.width=pct(yellow)+"%";
-  const segG=document.createElement("div"); 
-  segG.className="seg green"; 
-  segG.style.width=pct(green)+"%";
+  const segDone=document.createElement("div");segDone.className="seg done";segDone.style.width=pct(done)+"%";
+  const segRed=document.createElement("div");segRed.className="seg red";segRed.style.width=pct(red)+"%";
+  const segY=document.createElement("div");segY.className="seg yellow";segY.style.width=pct(yellow)+"%";
+  const segG=document.createElement("div");segG.className="seg green";segG.style.width=pct(green)+"%";
   barInner.append(segDone,segRed,segY,segG);
-
-  nums.textContent = total ? `הושלמו ${done}/${total} (${Math.round(pct(done))}%)` : "אין משימות להצגה";
-  legend.innerHTML = `
+  nums.textContent=total?`הושלמו ${done}/${total} (${Math.round(pct(done))}%)`:"אין משימות להצגה";
+  legend.innerHTML=`
     <span>✅ מוכן לעלייה: ${done}</span>
     <span>•</span>
     <span><span class="dot red"></span> דחוף: ${red}</span>
@@ -914,9 +1583,171 @@ function renderProgress(){
   `;
 }
 
-/* אתחול */
-render();
-</script>
+/* ===== Tags Manager ===== */
+const tagsModal=document.getElementById("tagsModal");
+const closeTagsModal=document.getElementById("closeTagsModal");
+const closeTagsModalBtn=document.getElementById("closeTagsModalBtn");
+const tagsManagerList=document.getElementById("tagsManagerList");
 
+document.getElementById("manageTagsBtn").addEventListener("click",()=>{
+  renderTagsManager();
+  tagsModal.style.display="flex";
+});
+[closeTagsModal,closeTagsModalBtn].forEach(btn=>btn.addEventListener("click",()=>tagsModal.style.display="none"));
+
+function renderTagsManager(){
+  const all=new Set();
+  board.categories.forEach(c=>(c.items||[]).forEach(it=>{(it.tags||[]).forEach(t=>all.add(t));}));
+  const arr=[...all].sort((a,b)=>a.localeCompare(b,'he'));
+  tagsManagerList.innerHTML="";
+  if(arr.length===0){
+    const none=document.createElement("div");
+    none.className="muted small";
+    none.textContent="אין תגיות להצגה. הוסיפי תגיות לפריטים כדי לנהל אותן כאן.";
+    tagsManagerList.appendChild(none);
+    return;
+  }
+  arr.forEach(tag=>{
+    const item=document.createElement("div");
+    item.className="tag-manager-item";
+    const preview=document.createElement("div");
+    preview.className="color-preview";
+    const currentColor=board.tagColors[tag]||tagColors(tag).bg;
+    preview.style.background=currentColor;
+    const label=document.createElement("span");
+    label.textContent=tag;
+    label.style.flex="1";
+    const colorInput=document.createElement("input");
+    colorInput.type="color";
+    colorInput.value=board.tagColors[tag]||"#e0d0ff";
+    colorInput.addEventListener("change",()=>{
+      board.tagColors[tag]=colorInput.value;
+      preview.style.background=colorInput.value;
+      saveBoard(); render();
+    });
+    const resetBtn=document.createElement("button");
+    resetBtn.className="btn-ghost small";
+    resetBtn.textContent="↺";
+    resetBtn.title="איפוס לצבע אוטומטי";
+    resetBtn.setAttribute('aria-label','איפוס לצבע אוטומטי');
+    resetBtn.addEventListener("click",()=>{
+      delete board.tagColors[tag];
+      saveBoard(); renderTagsManager(); render();
+    });
+    item.append(preview,label,colorInput,resetBtn);
+    tagsManagerList.appendChild(item);
+  });
+}
+
+/* ===== Menus (Category & Item) ===== */
+function openCategoryMenu(trigger, cat){
+  const items=[
+    {icon:"✏️", label:"שינוי שם", action:()=>renameCategory(cat.id)},
+    {icon:"➕", label:"הוספת תת־קטגוריה", action:()=>{ openAddCatModal('subcat'); addCatParentSelect.value=cat.id; }},
+    {icon:"📋", label:"שכפול", action:()=>duplicateCategory(cat.id)},
+    {icon:"🚚", label:"העברה מהירה ל...", action:()=>quickMoveCategory(cat.id)},
+    {icon:"🗑️", label:"מחיקה", action:()=>deleteCategory(cat.id)}
+  ];
+  openMenu(trigger, items);
+}
+function openItemMenu(trigger,catId,itemId){
+  const items=[
+    {icon:"✏️", label:"עריכה", action:()=>openEditModal(catId,itemId)},
+    {icon:"📋", label:"שכפול", action:()=>duplicateItem(catId,itemId)},
+    {icon:"🚚", label:"העברה מהירה", action:()=>quickMoveItem(catId,itemId)},
+    {icon:"🗑️", label:"מחיקה", action:()=>deleteItem(catId,itemId)}
+  ];
+  openMenu(trigger, items);
+}
+function openMenu(trigger, items){
+  closeMenu();
+  const rect=trigger.getBoundingClientRect();
+  menuPop.innerHTML="";
+  items.forEach(it=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.innerHTML=`<span>${it.icon}</span><span>${it.label}</span>`;
+    b.addEventListener("click",()=>{it.action(); closeMenu();});
+    menuPop.appendChild(b);
+  });
+  menuPop.style.top=window.scrollY + rect.bottom + 6 + "px";
+  menuPop.style.insetInlineStart=window.scrollX + rect.left + "px";
+  menuPop.classList.add("open");
+  document.addEventListener("click",docClose,{once:true});
+}
+function closeMenu(){menuPop.classList.remove("open");}
+function docClose(e){ if(!menuPop.contains(e.target)) closeMenu(); }
+
+/* Category menu actions */
+function duplicateCategory(catId){
+  const idx=board.categories.findIndex(c=>c.id===catId); if(idx===-1)return;
+  const src=board.categories[idx];
+  const copy=structuredClone(src);
+  copy.id=uid();
+  copy.title=src.title+" (עותק)";
+  (copy.items||[]).forEach(it=>it.id=uid());
+  board.categories.splice(idx+1,0,copy);
+  saveBoard(); render();
+}
+function quickMoveCategory(catId){
+  const to=prompt("הזיני יעד: 'top' / 'bottom'","top");
+  if(!to)return;
+  const list=board.categories;
+  const i=list.findIndex(c=>c.id===catId); if(i===-1)return;
+  const [cat]=list.splice(i,1);
+  if(to.toLowerCase().startsWith("t")) list.unshift(cat); else list.push(cat);
+  saveBoard(); render();
+}
+function deleteCategory(catId){
+  const cat=board.categories.find(c=>c.id===catId);
+  if(!cat)return;
+  if(!confirm(`למחוק את "${cat.title}" ואת ${cat.items.length} הפריטים שבה?`))return;
+  board.categories=board.categories.filter(c=>c.id!==catId);
+  saveBoard(); render();
+}
+
+/* Item menu actions */
+function duplicateItem(catId,itemId){
+  const cat=board.categories.find(c=>c.id===catId); if(!cat)return;
+  const idx=cat.items.findIndex(i=>i.id===itemId); if(idx===-1)return;
+  const copy=structuredClone(cat.items[idx]); copy.id=uid(); copy.title=copy.title+" (עותק)";
+  cat.items.splice(idx+1,0,copy); saveBoard(); render();
+}
+function quickMoveItem(catId,itemId){
+  const names=board.categories.map(c=>c.title);
+  const name=prompt("לאיזו קטגוריה להעביר?", names.join(" | "));
+  if(!name)return;
+  const toCat=board.categories.find(c=>c.title===name.trim());
+  if(!toCat){alert("לא נמצאה קטגוריה בשם זה.");return;}
+  moveItem(catId,toCat.id,itemId);
+}
+function deleteItem(catId,itemId){
+  const cat=board.categories.find(c=>c.id===catId); if(!cat)return;
+  const it=cat.items.find(i=>i.id===itemId); if(!it)return;
+  if(!confirm(`למחוק את "${it.title}"?`))return;
+  cat.items=cat.items.filter(i=>i.id!==itemId);
+  saveBoard(); render();
+}
+
+/* ===== Init ===== */
+render();
+
+// Toggle density (מצב קומפקטי)
+const densityBtn=document.getElementById('densityBtn');
+if(densityBtn){
+  const KEY='board-density';
+  const saved=localStorage.getItem(KEY);
+  if(saved==='compact') document.body.classList.add('compact');
+  densityBtn.textContent=document.body.classList.contains('compact')?'מצב רגיל':'מצב קומפקטי';
+  densityBtn.addEventListener('click',()=>{
+    document.body.classList.toggle('compact');
+    const compact=document.body.classList.contains('compact');
+    densityBtn.textContent=compact?'מצב רגיל':'מצב קומפקטי';
+    localStorage.setItem(KEY, compact?'compact':'default');
+  });
+}
+
+/* פתיחה/סגירה פאנל משימות – כבר הוסף למעלה */
+</script>
 </body>
 </html>
