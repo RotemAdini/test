@@ -10,7 +10,10 @@
 :root{
   --bg:#efe7ff;--card:#fff;--ink:#1b1033;--muted:#6a5d8f;
   --purple:#7b5cff;--purple-2:#5b3df7;--line:#ded3ff;
-  --red:#ff4d4f;--yellow:#fdbc3d;--green:#31c655
+  --red:#ff4d4f;--yellow:#fdbc3d;--green:#31c655;
+  --sky:#e6f7ff;           /* תכלת רקע ל"סדר עלייה" */
+  --sky-border:#b7e7ff;    /* תכלת כהה יותר למסגרות */
+  --sky-ink:#0b5880;       /* טקסט תכלת כהה */
 }
 
 /* ======= Resets ======= */
@@ -248,9 +251,22 @@ body.compact .dot{width:8px;height:8px}
 .subcat .chev{transition:transform .2s;cursor:pointer}
 .subcat.collapsed .chev{transform:rotate(180deg)}
 .subcat.collapsed .list{display:none}
-.inline-tag .remove-tag {
-  display: none !important;
+.inline-tag .remove-tag { display: none !important; }
+
+/* ====== "סדר עלייה" – עיצוב תכלת ====== */
+.schedule-section{background:#fff;border:2px solid var(--sky-border)}
+.schedule-section .col-header{
+  background:linear-gradient(135deg,var(--sky) 0%, #f9fdff 100%);
+  border-bottom:1px solid var(--sky-border); color:var(--sky-ink)
 }
+.schedule-section .col-header h3{color:var(--sky-ink)}
+.schedule-section .list .item{border-color:var(--sky-border)}
+.schedule-mark{margin-inline-start:auto;font-weight:800;color:var(--green)}
+.schedule-due{font-weight:700;color:#333}
+.schedule-badge{border:1px solid var(--sky-border);background:var(--sky);border-radius:999px;padding:2px 8px;font-size:11px;color:var(--sky-ink)}
+/* רקע לפי קרבת דד־ליין */
+.item.due-yellow{ background: rgba(253,188,61,.12); border-color:#ffe3b0; }
+.item.due-red{    background: rgba(255,77,79,.14); border-color:#ffc7c8; }
 </style>
 </head>
 
@@ -331,6 +347,9 @@ body.compact .dot{width:8px;height:8px}
   <!-- לוח הקטגוריות -->
   <div id="board" class="board"></div>
 
+  <!-- כאן מתווספת "סדר עלייה ⏰" דינמית -->
+  <div id="scheduleMount"></div>
+
   <footer class="page-footer">
     <button id="exportBtn" class="btn-ghost small" type="button">ייצוא</button>
     <button id="importBtn" class="btn-ghost small" type="button">ייבוא</button>
@@ -372,7 +391,7 @@ body.compact .dot{width:8px;height:8px}
     </div>
 
     <div class="row">
-      <div class="label">דחיפות</div>
+      <div "class"="label">דחיפות</div>
       <div class="chips">
         <button class="chip" data-pr="red" type="button"><span class="dot red"></span>דחוף</button>
         <button class="chip" data-pr="yellow" type="button"><span class="dot yellow"></span>ביניים</button>
@@ -500,7 +519,29 @@ function normPriority(p){const m={"אדום":"red","דחוף":"red",red:"red","�
 function priorityLabel(p){return p==="red"?"דחוף":p==="yellow"?"ביניים":"יש זמן"}
 function todayStr(){const d=new Date(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${d.getFullYear()}-${m}-${day}`}
 function isValidDateStr(s){return/^\d{4}-\d{2}-\d{2}$/.test(s||"")}
-/* תאריך קצר DD.MM.YY לתצוגת הכרטיס */
+/* תאריך קצר DD.MM.YY לתצוגת הכרטיס 
+*/
+// ממיר "2025-10-1" ל-"2025-10-01", וגם "23.10.25" ל-"2025-10-23"
+function normalizeDue(s){
+  if(!s) return "";
+  s = String(s).trim();
+
+  // תמיכה ב-YYYY-M-D
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const [_, y, mo, da] = m;
+    return `${y}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+  }
+
+  // תמיכה ב-DD.MM.YY (נניח 20YY)
+  m = s.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if(m){
+    const [_, dd, mm, yy] = m;
+    return `20${yy}-${mm}-${dd}`;
+  }
+
+  return s; // אם לא זוהה – נשאיר כמו שהוא
+}
 function formatDue(due){
   if(!due) return "";
   const parts=(due||"").split("-");
@@ -513,8 +554,36 @@ function splitLinks(text){return (text||"").split(/\n|,|;|\s+/).map(s=>s.trim())
 function uniq(arr){return Array.from(new Set(arr));}
 function hasSubcats(cat){return Array.isArray(cat.subcategories)&&cat.subcategories.length>0;}
 
-/* ===== Tag Colors ===== */
+function getManualOrder(){
+  if(!Array.isArray(board.scheduleManual)) board.scheduleManual = [];
+  return board.scheduleManual;
+}
 
+// עדכון סדר ידני (ללא תאריך) לפי גרירה בתוך "סדר עלייה"
+function scheduleReorderNoDate(dragId, targetId, insertBefore){
+  const order = getManualOrder();
+  // הסר אם קיים
+  const curIdx = order.indexOf(dragId);
+  if(curIdx !== -1) order.splice(curIdx, 1);
+
+  // מקם ביחס ליעד (אם היעד לא קיים – נדחוף לסוף)
+  const tIdx = order.indexOf(targetId);
+  if(tIdx === -1){
+    order.push(dragId);
+  }else{
+    order.splice(insertBefore ? tIdx : tIdx+1, 0, dragId);
+  }
+  saveBoard();
+}
+/* כמה ימים נשארו עד הדד־ליין (מספר חיובי), או null אם לא תקין/אין תאריך */
+function daysUntil(dueStr){
+  if(!isValidDateStr(dueStr)) return null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const due=new Date(dueStr+"T00:00:00");
+  const ms=due - today;
+  return Math.ceil(ms/86400000); // היום=0, מחר=1, עבר=שלילי/0
+}
+/* ===== Tag Colors ===== */
 function tagColors(tag){
   if(board.tagColors && board.tagColors[tag]){
     const c=board.tagColors[tag];
@@ -582,7 +651,9 @@ const DEFAULT_BOARD={
     {id:uid(),title:"עלה",collapsed:false,items:[]}
   ]
 };
-
+function isPublishedCategoryTitle(t){ 
+  return t === "מוכן לעלייה" || t === "עלה"; 
+}
 /* ===== Persistence ===== */
 function saveBoard(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(board)); }
 function loadBoard(){
@@ -592,6 +663,8 @@ function loadBoard(){
 
     if(!data.tagColors) data.tagColors = {};
     if(!Array.isArray(data.tasks)) data.tasks = [];
+    // 👇 חדש: מערך לשמירת סדר ידני של פריטים ללא תאריך ב"סדר עלייה"
+if (!Array.isArray(data.scheduleManual)) data.scheduleManual = [];
 
     (data.categories || []).forEach(c=>{
       c.subcategories = Array.isArray(c.subcategories) ? c.subcategories : [];
@@ -612,12 +685,14 @@ function loadBoard(){
 
     return data;
   }catch(e){
+    // במקרה של כשל – נחזיר ברירת מחדל, והבדיקה למעלה תדאג ל-scheduleManual בקריאה הבאה
     return structuredClone(DEFAULT_BOARD);
   }
 }
-let board=loadBoard();
+let board = loadBoard();
 /* ===== Globals & Elements ===== */
 const boardEl=document.getElementById("board");
+const scheduleMount=document.getElementById("scheduleMount");
 const toggleAllBtn=document.getElementById("toggleAllBtn");
 const tasksSection=document.getElementById("tasksSection");
 const tasksHeader=document.getElementById("tasksHeader");
@@ -651,22 +726,38 @@ function render(){
   renderProgress();
   renderTagFilterChips();
   renderStats();
+// הצג "סדר עלייה ⏰" התכלתי רק אם אין קטגוריה רגילה בשם הזה
+const hasManualSchedule = board.categories.some(c => c.title === "סדר עלייה ⏰");
+if (!hasManualSchedule) {
+  renderScheduleCategory();
+} else {
+  scheduleMount.innerHTML = ""; // ליתר ביטחון ננקה את המיכל הווירטואלי
+}
 }
 
 function renderStats(){
-  let total=0,completed=0,urgent=0;
-  const openTasks=board.tasks.filter(t=>!t.completed).length;
-  board.categories.forEach(c=>{
-    if(c.title==="עלה"||c.title==="מוכן לעלייה")completed+=c.items.length;
-    total+=c.items.length;
-    c.items.forEach(it=>{if(it.priority==="red")urgent++;});
-  });
-  document.getElementById("statTotal").textContent=total;
-  document.getElementById("statCompleted").textContent=completed;
-  document.getElementById("statUrgent").textContent=urgent;
-  document.getElementById("statTasks").textContent=openTasks;
-}
+  const EXCLUDE = new Set(["סדר עלייה ⏰"]); // לא לספור קטגוריה זו
 
+  let total = 0, completed = 0, urgent = 0;
+  const openTasks = board.tasks.filter(t => !t.completed).length;
+
+  board.categories.forEach(c => {
+    if (EXCLUDE.has(c.title)) return; // דילוג על "סדר עלייה"
+
+    if (c.title === "עלה" || c.title === "מוכן לעלייה") {
+      completed += c.items.length;
+      total += c.items.length;
+    } else {
+      total += c.items.length;
+      c.items.forEach(it => { if (it.priority === "red") urgent++; });
+    }
+  });
+
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statCompleted").textContent = completed;
+  document.getElementById("statUrgent").textContent = urgent;
+  document.getElementById("statTasks").textContent = openTasks;
+}
 function renderTasks(){
   tasksList.innerHTML="";
   tasksCount.textContent=`${board.tasks.length} משימות`;
@@ -711,8 +802,14 @@ function renderTasks(){
 
 /* ===== Category (with Subcats) ===== */
 function renderCategory(cat){
-  const col=document.createElement("section");
-  col.className="col"+(cat.collapsed?" collapsed":"");
+  const col = document.createElement("section");
+
+  // אם זו הקטגוריה "סדר עלייה ⏰" — תוסיפי את העיצוב התכלת
+  if (cat.title === "סדר עלייה ⏰") {
+    col.className = "col schedule-section" + (cat.collapsed ? " collapsed" : "");
+  } else {
+    col.className = "col" + (cat.collapsed ? " collapsed" : "");
+  }
   col.dataset.catId=cat.id;
 
   const header=document.createElement("div");
@@ -752,11 +849,11 @@ function renderCategory(cat){
 
   const headerActions=document.createElement("div");
   headerActions.className="header-actions";
-// פריטים שמוצגים כרגע (אחרי חיפוש/פילטרים) ואינם משוייכים לתת־קטגוריה
-const unassignedItems = allVisible.filter(it => !it.subcat);
-const hasUnassigned = unassignedItems.length > 0;
-  
-// ניהול דרך התפריט
+
+  // פריטים לא משוייכים לתת־קטגוריה (מוצגים רק אם קיימים)
+  const unassignedItems = allVisible.filter(it => !it.subcat);
+  const hasUnassigned = unassignedItems.length > 0;
+
   const renameBtn=document.createElement("button");
   renameBtn.className="rename-btn btn-ghost small";
   renameBtn.textContent="✏️";
@@ -790,36 +887,33 @@ const hasUnassigned = unassignedItems.length > 0;
   const subWrap=document.createElement("div");
   subWrap.className="subcats";
 
-  // 'ללא תת־קטגוריה'
-  // 'ללא תת־קטגוריה' – מציגים רק אם יש פריטים כאלה
-if (hasUnassigned) {
-  const unBox = document.createElement("section");
-  unBox.className = "subcat" + (cat.unCollapsed ? "" : " collapsed");
+  if (hasUnassigned) {
+    const unBox = document.createElement("section");
+    unBox.className = "subcat" + (cat.unCollapsed ? "" : " collapsed");
 
-  const unHead = document.createElement("div");
-  unHead.className = "subcat-header";
-  unHead.innerHTML = '<h4>ללא תת־קטגוריה</h4><span class="chev" title="פתח/סגור">▾</span>';
-  unHead.addEventListener("click", () => {
-    cat.unCollapsed = !cat.unCollapsed;
-    saveBoard(); render();
-  });
+    const unHead = document.createElement("div");
+    unHead.className = "subcat-header";
+    unHead.innerHTML = '<h4>ללא תת־קטגוריה</h4><span class="chev" title="פתח/סגור">▾</span>';
+    unHead.addEventListener("click", () => {
+      cat.unCollapsed = !cat.unCollapsed;
+      saveBoard(); render();
+    });
 
-  const unList = document.createElement("div");
-  unList.className = "list";
-  unList.dataset.catId = cat.id;
-  unList.dataset.subcatId = "";
+    const unList = document.createElement("div");
+    unList.className = "list";
+    unList.dataset.catId = cat.id;
+    unList.dataset.subcatId = "";
 
-  unassignedItems.forEach(it => {
-    const el = renderItem(it, cat.id);
-    el.dataset.subcatId = "";
-    unList.appendChild(el);
-  });
+    unassignedItems.forEach(it => {
+      const el = renderItem(it, cat.id);
+      el.dataset.subcatId = "";
+      unList.appendChild(el);
+    });
 
-  unBox.append(unHead, unList);
-  subWrap.appendChild(unBox);
-}
+    unBox.append(unHead, unList);
+    subWrap.appendChild(unBox);
+  }
 
-  // תתי־קטגוריות קיימות (כל אחת נפתחת/נסגרת בנפרד)
   cat.subcategories.forEach(sc=>{
     const box=document.createElement("section");
     box.className="subcat"+(sc.collapsed ? " collapsed" : "");
@@ -932,7 +1026,16 @@ function renderItem(item,catId){
   el.dataset.itemId=item.id;
   el.dataset.catId=catId;
   el.dataset.subcatId=item.subcat||"";
-
+// צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה"
+// צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה" או "עלה"
+const parentCat = board.categories.find(c => c.id === catId);
+if (parentCat && !isPublishedCategoryTitle(parentCat.title)) {
+  const days = daysUntil(item.due);
+  if (days !== null) {
+    if (days < 2) el.classList.add('due-red');
+    else if (days < 7) el.classList.add('due-yellow');
+  }
+}
   const pr=item.priority||"green";
   const badge=document.createElement("span");
   badge.className="badge "+pr;
@@ -1016,7 +1119,7 @@ document.getElementById("addVideoBtn").addEventListener("click",()=>{
     id:uid(),title:t.trim(),priority:normPriority(pr),due:d||"",tags:[],
     inspirationLinks:[],outfits:{rotem:"",meir:""},subcat:null
   });
-  saveBoard();render();
+  saveBoard();render(); // ← יופיע אוטומטית גם ב"סדר עלייה"
 });
 
 /* הוספת משימה לצ'קליסט */
@@ -1312,13 +1415,14 @@ let dragState={itemId:null,fromCat:null,hoverTimer:null,draggedEl:null,dragCatId
 function attachDnDForItems(){
   document.querySelectorAll(".item").forEach(el=>{
     el.addEventListener("dragstart",e=>{
+      if(el.closest('.schedule-section')){ e.preventDefault(); return; } // אין גרירה ב"סדר עלייה"
       el.classList.add("dragging");
       dragState.itemId=el.dataset.itemId;
       dragState.fromCat=el.dataset.catId;
       dragState.draggedEl=el;
       e.dataTransfer.effectAllowed="move";
       e.dataTransfer.setData('text/plain',el.dataset.itemId);
-      // תאימות ל-Safari/Firefox
+      // תאימות
       if(e.dataTransfer.setDragImage){
         const gi=el.cloneNode(true);
         gi.style.position="absolute";gi.style.top="-9999px";gi.style.pointerEvents="none";gi.style.opacity="0.8";
@@ -1345,6 +1449,7 @@ function attachDnDForItems(){
     el.addEventListener("dragleave",()=>el.classList.remove("drag-over-top","drag-over-bottom"));
     el.addEventListener("drop",e=>{
       e.preventDefault();e.stopPropagation();
+      if(el.closest('.schedule-section')) return;
       el.classList.remove("drag-over-top","drag-over-bottom");
       if(el.dataset.catId===dragState.fromCat){
         const targetSub=el.dataset.subcatId||"";
@@ -1358,9 +1463,13 @@ function attachDnDForItems(){
   });
 
   document.querySelectorAll(".list").forEach(list=>{
-    list.addEventListener("dragover",e=>{e.preventDefault();list.classList.add("dragover");});
+    list.addEventListener("dragover",e=>{
+      if(list.closest('.schedule-section')) return; // אין גרירה ל/מ"סדר עלייה"
+      e.preventDefault();list.classList.add("dragover");
+    });
     list.addEventListener("dragleave",()=>list.classList.remove("dragover"));
     list.addEventListener("drop",e=>{
+      if(list.closest('.schedule-section')) return;
       e.preventDefault();list.classList.remove("dragover");
       const targetCatId = list.dataset.catId;
       const targetSub = list.dataset.subcatId || "";
@@ -1401,6 +1510,7 @@ function attachDnDForCategories(){
   document.querySelectorAll(".col-header").forEach(header=>{
     header.addEventListener("dragstart",e=>{
       if(!header.hasAttribute("draggable")){e.preventDefault();return;}
+      if(header.closest('.schedule-section')){ e.preventDefault(); return; } // אין גרירת "סדר עלייה"
       const col=header.closest(".col");
       col.classList.add("cat-drag-ghost");
       dragState.dragCatId=col.dataset.catId;
@@ -1416,7 +1526,7 @@ function attachDnDForCategories(){
     });
   });
 
-  const cols=Array.from(document.querySelectorAll(".col"));
+  const cols=Array.from(document.querySelectorAll(".col")).filter(c=>!c.classList.contains('schedule-section'));
   cols.forEach(col=>{
     col.addEventListener("dragover",e=>{
       if(!dragState.dragCatId){return;}
@@ -1472,7 +1582,7 @@ function moveItem(fromCatId,toCatId,itemId){
   const it=from.items.splice(idx,1)[0];
   it.subcat=null;
   to.items.push(it);
-  saveBoard();render();
+  saveBoard();render(); // ← יעדכן גם את "סדר עלייה" והוי
 }
 
 /* ===== Import / Export ===== */
@@ -1550,39 +1660,48 @@ function setupQuickMoveLongPress(el,qm,catId,itemId){
   el.addEventListener("contextmenu",e=>e.preventDefault());
   el.addEventListener("mousedown",start);el.addEventListener("mouseup",cancel);el.addEventListener("mouseleave",cancel);
   el.addEventListener("touchstart",start,{passive:true});el.addEventListener("touchend",cancel);
-  el.addEventListener("touchmove",(e)=>{const t=e.touches[0];if(Math.hypot(t.clientX-startX,t.clientY-startY)>12)cancel();},{passive:true});
+  el.addEventListener("touchmove",(e)=>{const t=e.touches[0];if(Math.hypot(t.clientX-startX,t.clientY)>12)cancel();},{passive:true});
 }
 function hideAnyQuickMove(){document.querySelectorAll(".quick-move").forEach(q=>q.style.display="none");}
 
 /* ===== Progress ===== */
 function renderProgress(){
-  const excludeTitle="עלה";
-  const doneTitle="מוכן לעלייה";
-  let total=0,done=0,red=0,yellow=0,green=0;
-  board.categories.forEach(c=>{
-    if(c.title===excludeTitle)return;
-    if(c.title===doneTitle){done+=c.items.length;total+=c.items.length;}
-    else{
-      total+=c.items.length;
-      c.items.forEach(it=>{
-        if(it.priority==="red")red++;
-        else if(it.priority==="yellow")yellow++;
+  // קטגוריות שלא נספרות במד התקדמות
+  const EXCLUDE = new Set(["סדר עלייה ⏰", "עלה"]);
+  const DONE_TITLE = "מוכן לעלייה";
+
+  let total = 0, done = 0, red = 0, yellow = 0, green = 0;
+
+  board.categories.forEach(c => {
+    if (EXCLUDE.has(c.title)) return;
+
+    if (c.title === DONE_TITLE) {
+      done += c.items.length;
+      total += c.items.length;
+    } else {
+      total += c.items.length;
+      c.items.forEach(it => {
+        if (it.priority === "red") red++;
+        else if (it.priority === "yellow") yellow++;
         else green++;
       });
     }
   });
-  const barInner=document.getElementById("barInner");
-  const legend=document.getElementById("progressLegend");
-  const nums=document.getElementById("progressNumbers");
-  const pct=(n)=>total?Math.max(0,Math.min(100,(n/total)*100)):0;
-  barInner.innerHTML="";
-  const segDone=document.createElement("div");segDone.className="seg done";segDone.style.width=pct(done)+"%";
-  const segRed=document.createElement("div");segRed.className="seg red";segRed.style.width=pct(red)+"%";
-  const segY=document.createElement("div");segY.className="seg yellow";segY.style.width=pct(yellow)+"%";
-  const segG=document.createElement("div");segG.className="seg green";segG.style.width=pct(green)+"%";
-  barInner.append(segDone,segRed,segY,segG);
-  nums.textContent=total?`הושלמו ${done}/${total} (${Math.round(pct(done))}%)`:"אין משימות להצגה";
-  legend.innerHTML=`
+
+  const barInner = document.getElementById("barInner");
+  const legend = document.getElementById("progressLegend");
+  const nums = document.getElementById("progressNumbers");
+  const pct = (n) => total ? Math.max(0, Math.min(100, (n/total)*100)) : 0;
+
+  barInner.innerHTML = "";
+  const segDone = document.createElement("div"); segDone.className = "seg done";   segDone.style.width = pct(done) + "%";
+  const segRed  = document.createElement("div"); segRed.className  = "seg red";    segRed.style.width  = pct(red)  + "%";
+  const segY    = document.createElement("div"); segY.className    = "seg yellow"; segY.style.width    = pct(yellow) + "%";
+  const segG    = document.createElement("div"); segG.className    = "seg green";  segG.style.width    = pct(green) + "%";
+  barInner.append(segDone, segRed, segY, segG);
+
+  nums.textContent = total ? `הושלמו ${done}/${total} (${Math.round(pct(done))}%)` : "אין משימות להצגה";
+  legend.innerHTML = `
     <span>✅ מוכן לעלייה: ${done}</span>
     <span>•</span>
     <span><span class="dot red"></span> דחוף: ${red}</span>
@@ -1590,7 +1709,6 @@ function renderProgress(){
     <span><span class="dot green"></span> יש זמן: ${green}</span>
   `;
 }
-
 /* ===== Tags Manager ===== */
 const tagsModal=document.getElementById("tagsModal");
 const closeTagsModal=document.getElementById("closeTagsModal");
@@ -1735,6 +1853,228 @@ function deleteItem(catId,itemId){
   if(!confirm(`למחוק את "${it.title}"?`))return;
   cat.items=cat.items.filter(i=>i.id!==itemId);
   saveBoard(); render();
+}
+
+/* ===== Dynamic "סדר עלייה ⏰" ===== */
+function renderScheduleCategory(){
+  const mount = document.getElementById("scheduleMount");
+  if (!mount) return;
+  mount.innerHTML = "";
+
+  // נאסוף את כל הפריטים מכל הקטגוריות (מלבד "סדר עלייה ⏰")
+  const itemToCat = new Map();
+  const postedSet = new Set(); // פריטים שבקטגוריית "עלה"
+  const filters = currentFilters();
+  const scheduleTitle = "סדר עלייה ⏰";
+
+  const all = [];
+  board.categories.forEach(c=>{
+    if (c.title === scheduleTitle) return;
+    (c.items||[]).forEach(it=>{
+      itemToCat.set(it.id, c.id);
+      if (c.title === "עלה") postedSet.add(it.id);
+      if (passesFilters(it, filters)) all.push(it);
+    });
+  });
+
+  // הפרדה: עם תאריך / בלי תאריך
+  const withDate = [], noDate = [];
+  all.forEach(it => (isValidDateStr(it.due) ? withDate : noDate).push(it));
+
+  // מיון עם תאריך: מוקדם→מאוחר, ואז לפי שם
+  withDate.sort((a,b)=>{
+    if (a.due < b.due) return -1;
+    if (a.due > b.due) return 1;
+    return (a.title||"").localeCompare(b.title||"","he");
+  });
+
+  // מיון בלי תאריך: לפי סדר ידני (אם נשמר), ואז לפי שם
+  const manual = getManualOrder();
+  noDate.sort((a,b)=>{
+    const ia = manual.indexOf(a.id), ib = manual.indexOf(b.id);
+    if (ia !== -1 || ib !== -1) {
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    }
+    return (a.title||"").localeCompare(b.title||"","he");
+  });
+
+  const sorted = withDate.concat(noDate);
+
+  // בניית הקולונה
+  const col = document.createElement("section");
+  col.className = "col schedule-section";
+  const header = document.createElement("div");
+  header.className = "col-header";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "col-title";
+  const chev = document.createElement("span");
+  chev.className = "chev";
+  chev.textContent = "▾";
+  chev.title = "פתח/סגור";
+  const h3 = document.createElement("h3");
+  h3.textContent = scheduleTitle;
+  titleWrap.append(chev,h3);
+
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = `${sorted.length} פריטים`;
+
+  const headerActions = document.createElement("div");
+  headerActions.className = "header-actions";
+  const infoBadge = document.createElement("span");
+  infoBadge.className = "schedule-badge";
+  infoBadge.textContent = "ממויין לפי תאריך יעד • ללא תאריך גריר ידני";
+  headerActions.appendChild(infoBadge);
+
+  header.append(titleWrap, count, headerActions);
+
+  const list = document.createElement("div");
+  list.className = "list";
+
+  let collapsed = false;
+  chev.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    collapsed = !collapsed;
+    list.style.display = collapsed ? "none" : "grid";
+    count.textContent = collapsed ? "" : `${sorted.length} פריטים`;
+    chev.style.transform = collapsed ? "rotate(180deg)" : "none";
+  });
+
+  // ציור פריטים
+  sorted.forEach(it=>{
+    const row = document.createElement("div");
+    row.className = "item";
+    row.dataset.itemId = it.id;
+
+    const isUndated = !isValidDateStr(it.due);
+    row.setAttribute("draggable", isUndated ? "true" : "false");
+
+    const pr = it.priority || "green";
+    const badge = document.createElement("span");
+    badge.className = "badge " + pr;
+    badge.innerHTML = `<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
+
+    const title = document.createElement("div");
+    title.className = "grow";
+    const dueStr = isValidDateStr(it.due) ? formatDue(it.due) : "—";
+    title.innerHTML = `
+      <div><strong>${escapeHTML(it.title||"(ללא שם)")}</strong></div>
+      <div class="meta">תאריך יעד: <span class="schedule-due">${dueStr}</span></div>
+    `;
+
+    const mark = document.createElement("div");
+    mark.className = "schedule-mark";
+    if (postedSet.has(it.id)) { mark.textContent = "✓"; mark.title = "עלה"; }
+
+    row.append(badge, title, mark);
+
+    // לחיצה פותחת פרטי המקור
+    row.addEventListener("click", ()=>{
+      const catId = itemToCat.get(it.id);
+      if (catId) openInfoModal(catId, it.id);
+    });
+// רקע לפי דדליין רק אם הסרטון לא ב"מוכן לעלייה"
+const srcCatId = itemToCat.get(it.id);
+const srcCat = board.categories.find(c => c.id === srcCatId);
+if (!srcCat || srcCat.title !== "מוכן לעלייה") {
+  const days = daysUntil(it.due);
+  if (days !== null) {
+    if (days < 2) row.classList.add('due-red');
+    else if (days < 7) row.classList.add('due-yellow');
+  }
+}
+
+    list.appendChild(row);
+  });
+
+  col.append(header, list);
+  mount.appendChild(col);
+
+  // --- גרירה רק לפריטים בלי תאריך ---
+  const draggables = list.querySelectorAll(".item[draggable='true']");
+  let dragCtx = { id:null };
+
+  draggables.forEach(el=>{
+    el.addEventListener("dragstart",(e)=>{
+      dragCtx.id = el.dataset.itemId;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", dragCtx.id);
+    });
+    el.addEventListener("dragend",()=>{
+      el.classList.remove("dragging");
+      dragCtx.id = null;
+      list.querySelectorAll(".item").forEach(x=>x.classList.remove("drag-over-top","drag-over-bottom"));
+    });
+  });
+
+  draggables.forEach(el=>{
+    el.addEventListener("dragover",(e)=>{
+      e.preventDefault();
+      if (!dragCtx.id || el.dataset.itemId === dragCtx.id) return;
+      const rect = el.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height/2;
+      el.classList.toggle("drag-over-top", before);
+      el.classList.toggle("drag-over-bottom", !before);
+    });
+    el.addEventListener("dragleave",()=>{
+      el.classList.remove("drag-over-top","drag-over-bottom");
+    });
+    el.addEventListener("drop",(e)=>{
+      e.preventDefault();
+      el.classList.remove("drag-over-top","drag-over-bottom");
+      if (!dragCtx.id || el.dataset.itemId === dragCtx.id) return;
+      const rect = el.getBoundingClientRect();
+      const insertBefore = e.clientY < rect.top + rect.height/2;
+      scheduleReorderNoDate(dragCtx.id, el.dataset.itemId, insertBefore);
+      render(); // ציור מחדש עם הסדר החדש
+    });
+  });
+}
+function getManualOrder(){
+  if (!Array.isArray(board.scheduleManual)) board.scheduleManual = [];
+  return board.scheduleManual;
+}
+function setManualOrder(arr){
+  board.scheduleManual = Array.isArray(arr) ? arr : [];
+  saveBoard();
+}
+/**
+ * שינוי סדר ידני בין שני פריטים ללא תאריך
+ * @param {string} draggedId - מי גוררים
+ * @param {string} targetId  - על מי מפילים
+ * @param {boolean} insertBefore - להכניס לפני/אחרי היעד
+ */
+function scheduleReorderNoDate(draggedId, targetId, insertBefore){
+  const order = getManualOrder().slice();
+  const idsInBoard = new Set();
+  board.categories.forEach(c=>(c.items||[]).forEach(it=>{
+    if (!isValidDateStr(it.due)) idsInBoard.add(it.id);
+  }));
+  // ננקה מזהויות שכבר לא קיימות
+  const cleaned = order.filter(id => idsInBoard.has(id));
+  if (cleaned.length !== order.length) setManualOrder(cleaned);
+
+  // אם מזהה לא קיים — נוסיף בסוף
+  const ensureIn = (id)=>{
+    const cur = getManualOrder().slice();
+    if (!cur.includes(id)) { cur.push(id); setManualOrder(cur); }
+  };
+  ensureIn(draggedId);
+  ensureIn(targetId);
+
+  const cur = getManualOrder().slice();
+  const dIdx = cur.indexOf(draggedId);
+  const tIdx = cur.indexOf(targetId);
+  if (dIdx === -1 || tIdx === -1) return;
+
+  cur.splice(dIdx,1);
+  const newIndex = cur.indexOf(targetId) + (insertBefore ? 0 : 1);
+  cur.splice(newIndex, 0, draggedId);
+  setManualOrder(cur);
 }
 
 /* ===== Init ===== */
