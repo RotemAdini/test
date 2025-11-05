@@ -509,80 +509,126 @@ body.compact .dot{width:8px;height:8px}
 
 <script>
 /* ===== Polyfills & Utils ===== */
-if(typeof structuredClone!=='function'){window.structuredClone=obj=>JSON.parse(JSON.stringify(obj));}
+if(typeof structuredClone!=='function'){
+  window.structuredClone = obj => JSON.parse(JSON.stringify(obj));
+}
 
-const STORAGE_KEY="video-board-v6";
-function uid(){return Math.random().toString(36).slice(2,9)}
-function escapeHTML(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
-function normPriority(p){const m={"אדום":"red","דחוף":"red",red:"red","צהוב":"yellow","ביניים":"yellow",yellow:"yellow","ירוק":"green","יש זמן":"green",green:"green"};return m[(p||"").toLowerCase()]||"green"}
-function priorityLabel(p){return p==="red"?"דחוף":p==="yellow"?"ביניים":"יש זמן"}
-function todayStr(){const d=new Date(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${d.getFullYear()}-${m}-${day}`}
-function isValidDateStr(s){return/^\d{4}-\d{2}-\d{2}$/.test(s||"")}
-/* תאריך קצר DD.MM.YY לתצוגת הכרטיס 
-*/
-// ממיר "2025-10-1" ל-"2025-10-01", וגם "23.10.25" ל-"2025-10-23"
+const STORAGE_KEY = "video-board-v6";
+
+function uid(){
+  return Math.random().toString(36).slice(2,9);
+}
+function escapeHTML(s){
+  return (s||"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms);}}
+function normPriority(p){
+  const m={
+    "אדום":"red","דחוף":"red",red:"red",
+    "צהוב":"yellow","ביניים":"yellow",yellow:"yellow",
+    "ירוק":"green","יש זמן":"green",green:"green"
+  };
+  return m[(p||"").toLowerCase()]||"green";
+}
+function priorityLabel(p){
+  return p==="red"?"דחוף":p==="yellow"?"ביניים":"יש זמן";
+}
+function todayStr(){
+  const d=new Date(),
+        m=String(d.getMonth()+1).padStart(2,'0'),
+        day=String(d.getDate()).padStart(2,'0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/* ---------- תאריכים ---------- */
+
+// ממיר "2025-10-1" ל-"2025-10-01" וגם "23.10.25" ל-"2025-10-23"
 function normalizeDue(s){
   if(!s) return "";
   s = String(s).trim();
 
-  // תמיכה ב-YYYY-M-D
+  // YYYY-M-D
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m){
     const [_, y, mo, da] = m;
     return `${y}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
   }
 
-  // תמיכה ב-DD.MM.YY (נניח 20YY)
+  // DD.MM.YY
   m = s.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
   if(m){
     const [_, dd, mm, yy] = m;
     return `20${yy}-${mm}-${dd}`;
   }
 
-  return s; // אם לא זוהה – נשאיר כמו שהוא
+  return s;
 }
+
+// בדיקה אם מחרוזת היא תאריך תקין בפורמט YYYY-MM-DD (אחרי normalize)
+function isValidDateStr(s){
+  const dstr = normalizeDue(s);
+  return /^\d{4}-\d{2}-\d{2}$/.test(dstr);
+}
+
+// הצגה כ-DD.MM.YY
 function formatDue(due){
   if(!due) return "";
-  const parts=(due||"").split("-");
+  const parts = (normalizeDue(due)||"").split("-");
   if(parts.length!==3) return due;
-  const[yyyy,mm,dd]=parts;
+  const [yyyy,mm,dd] = parts;
   return `${dd}.${mm}.${String(yyyy).slice(-2)}`;
 }
+
+// שמות ימי השבוע בעברית
+const HEB_DAYS = ["יום ראשון","יום שני","יום שלישי","יום רביעי","יום חמישי","יום שישי","יום שבת"];
+
+// החזרת שם יום בעברית לפי תאריך
+function hebrewWeekdayName(dueStr){
+  const dstr = normalizeDue(dueStr);
+  if(!isValidDateStr(dstr)) return "";
+  const d = new Date(dstr + "T00:00:00");
+  return HEB_DAYS[d.getDay()];
+}
+
+// מציג תאריך + יום בשבוע (למשל: 23.10.25 יום חמישי)
+function formatDueWithDay(dueStr){
+  const dstr = normalizeDue(dueStr);
+  if(!isValidDateStr(dstr)) return "—";
+  return `${formatDue(dstr)} ${hebrewWeekdayName(dstr)}`;
+}
+
+// כמה ימים נותרו עד הדד־ליין
+function daysUntil(dueStr){
+  const dstr = normalizeDue(dueStr);
+  if(!isValidDateStr(dstr)) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dstr + "T00:00:00");
+  return Math.ceil((due - today) / 86400000);
+}
+
+/* ---------- כללי ---------- */
 function hashStr(str){let h=0;for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}return Math.abs(h);}
 function splitLinks(text){return (text||"").split(/\n|,|;|\s+/).map(s=>s.trim()).filter(Boolean);}
 function uniq(arr){return Array.from(new Set(arr));}
 function hasSubcats(cat){return Array.isArray(cat.subcategories)&&cat.subcategories.length>0;}
 
+// סדר ידני ב"סדר עלייה"
 function getManualOrder(){
-  if(!Array.isArray(board.scheduleManual)) board.scheduleManual = [];
+  if(!Array.isArray(board.scheduleManual)) board.scheduleManual=[];
   return board.scheduleManual;
 }
-
-// עדכון סדר ידני (ללא תאריך) לפי גרירה בתוך "סדר עלייה"
 function scheduleReorderNoDate(dragId, targetId, insertBefore){
-  const order = getManualOrder();
-  // הסר אם קיים
-  const curIdx = order.indexOf(dragId);
-  if(curIdx !== -1) order.splice(curIdx, 1);
-
-  // מקם ביחס ליעד (אם היעד לא קיים – נדחוף לסוף)
-  const tIdx = order.indexOf(targetId);
-  if(tIdx === -1){
-    order.push(dragId);
-  }else{
-    order.splice(insertBefore ? tIdx : tIdx+1, 0, dragId);
-  }
+  const order=getManualOrder();
+  const curIdx=order.indexOf(dragId);
+  if(curIdx!==-1) order.splice(curIdx,1);
+  const tIdx=order.indexOf(targetId);
+  if(tIdx===-1) order.push(dragId);
+  else order.splice(insertBefore?tIdx:tIdx+1,0,dragId);
   saveBoard();
 }
-/* כמה ימים נשארו עד הדד־ליין (מספר חיובי), או null אם לא תקין/אין תאריך */
-function daysUntil(dueStr){
-  if(!isValidDateStr(dueStr)) return null;
-  const today=new Date(); today.setHours(0,0,0,0);
-  const due=new Date(dueStr+"T00:00:00");
-  const ms=due - today;
-  return Math.ceil(ms/86400000); // היום=0, מחר=1, עבר=שלילי/0
-}
+
 /* ===== Tag Colors ===== */
 function tagColors(tag){
   if(board.tagColors && board.tagColors[tag]){
@@ -1111,7 +1157,7 @@ if (parentCat && !isPublishedCategoryTitle(parentCat.title)) {
 document.getElementById("addVideoBtn").addEventListener("click",()=>{
   const t=prompt("שם הסרטון:");if(!t)return;
   const pr=prompt("דחיפות (red/yellow/green)?","green");
-  const d=prompt("תאריך יעד (YYYY-MM-DD):","");
+  const d = normalizeDue(prompt("תאריך יעד (YYYY-MM-DD):",""));
   const cn=board.categories.map((c,i)=>`${i+1}. ${c.title}`).join("\n");
   let idx=parseInt(prompt("לאיזו קטגוריה?\n"+cn,"1")||"1",10)-1;
   const cat=(board.categories[idx]||board.categories[0]);
@@ -1241,7 +1287,7 @@ function openEditModal(catId,itemId){
   const cat=board.categories.find(c=>c.id===catId);
   const item=cat.items.find(i=>i.id===itemId);
   editTitleInput.value=item.title||"";
-  editDueInput.value=item.due||"";
+
   editTagsInput.value=Array.isArray(item.tags)?item.tags.join(", "):"";
   editInspirationInput.value=(item.inspirationLinks||[]).join("\n");
   editOutfitRotem.value=(item.outfits&&item.outfits.rotem)||"";
@@ -1944,51 +1990,73 @@ function renderScheduleCategory(){
   });
 
   // ציור פריטים
-  sorted.forEach(it=>{
-    const row = document.createElement("div");
-    row.className = "item";
-    row.dataset.itemId = it.id;
+// ציור פריטים
+sorted.forEach(it=>{
+  const row = document.createElement("div");
+  row.className = "item";
+  row.dataset.itemId = it.id;
 
-    const isUndated = !isValidDateStr(it.due);
-    row.setAttribute("draggable", isUndated ? "true" : "false");
+  const isUndated = !isValidDateStr(it.due);
+  row.setAttribute("draggable", isUndated ? "true" : "false");
 
-    const pr = it.priority || "green";
-    const badge = document.createElement("span");
-    badge.className = "badge " + pr;
-    badge.innerHTML = `<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
+  // באדג' דחיפות
+  const pr = it.priority || "green";
+  const badge = document.createElement("span");
+  badge.className = "badge " + pr;
+  badge.innerHTML = `<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
 
-    const title = document.createElement("div");
-    title.className = "grow";
-    const dueStr = isValidDateStr(it.due) ? formatDue(it.due) : "—";
-    title.innerHTML = `
-      <div><strong>${escapeHTML(it.title||"(ללא שם)")}</strong></div>
-      <div class="meta">תאריך יעד: <span class="schedule-due">${dueStr}</span></div>
-    `;
+  // כותרת + תאריך + בגדים
+  const title = document.createElement("div");
+  title.className = "grow";
+  const outfits = it.outfits || {rotem:"", meir:""};
+  title.innerHTML = `
+    <div><strong>${escapeHTML(it.title||"(ללא שם)")}</strong></div>
+    <div class="meta">תאריך יעד: <span class="schedule-due">${formatDueWithDay(it.due)}</span></div>
+    <div class="meta">רותם: ${escapeHTML(outfits.rotem || "—")}</div>
+    <div class="meta">מאיר: ${escapeHTML(outfits.meir || "—")}</div>
+  `;
 
-    const mark = document.createElement("div");
-    mark.className = "schedule-mark";
-    if (postedSet.has(it.id)) { mark.textContent = "✓"; mark.title = "עלה"; }
-
-    row.append(badge, title, mark);
-
-    // לחיצה פותחת פרטי המקור
-    row.addEventListener("click", ()=>{
-      const catId = itemToCat.get(it.id);
-      if (catId) openInfoModal(catId, it.id);
-    });
-// רקע לפי דדליין רק אם הסרטון לא ב"מוכן לעלייה"
-const srcCatId = itemToCat.get(it.id);
-const srcCat = board.categories.find(c => c.id === srcCatId);
-if (!srcCat || srcCat.title !== "מוכן לעלייה") {
-  const days = daysUntil(it.due);
-  if (days !== null) {
-    if (days < 2) row.classList.add('due-red');
-    else if (days < 7) row.classList.add('due-yellow');
-  }
-}
-
-    list.appendChild(row);
+  // תגיות בשורה (כמו בקטגוריות הרגילות)
+  const tagsInline = document.createElement("div");
+  tagsInline.className = "inline-tags";
+  (it.tags || []).forEach(t=>{
+    const span = document.createElement("span");
+    span.className = "inline-tag";
+    const {bg,border,text} = tagColors(t);
+    span.style.background = bg;
+    span.style.borderColor = border;
+    span.style.color = text;
+    span.textContent = t;
+    tagsInline.appendChild(span);
   });
+
+  // סימון וי אם הפריט ב"עלה"
+  const mark = document.createElement("div");
+  mark.className = "schedule-mark";
+  if (postedSet.has(it.id)) { mark.textContent = "✓"; mark.title = "עלה"; }
+
+  // קליק פותח פרטי פריט מקוריים
+  row.addEventListener("click", ()=>{
+    const catId = itemToCat.get(it.id);
+    if (catId) openInfoModal(catId, it.id);
+  });
+
+  // רקע לפי דד־ליין רק אם הוא לא ב"מוכן לעלייה"
+  const srcCatId = itemToCat.get(it.id);
+  const srcCat = board.categories.find(c => c.id === srcCatId);
+  row.classList.remove('due-red','due-yellow'); // ניקוי בטוח
+  if (!srcCat || srcCat.title !== "מוכן לעלייה") {
+    const days = daysUntil(it.due);
+    if (days !== null) {
+      if (days < 2) row.classList.add('due-red');
+      else if (days < 7) row.classList.add('due-yellow');
+    }
+  }
+
+  // סדר האלמנטים בכרטיס
+  row.append(badge, title, tagsInline, mark);
+  list.appendChild(row);
+});
 
   col.append(header, list);
   mount.appendChild(col);
