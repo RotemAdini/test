@@ -1084,7 +1084,8 @@ function renderItem(item,catId){
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה"
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה" או "עלה"
 const parentCat = board.categories.find(c => c.id === catId);
-‎// צביעה לפי קטגוריה: "מוכן לעלייה" = ירוק; "עלה" = ירוק כהה
+
+
 if (parentCat) {
   if (parentCat.title === "מוכן לעלייה") {
     el.classList.add('status-ready');
