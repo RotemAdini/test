@@ -269,11 +269,11 @@ body.compact .dot{width:8px;height:8px}
 .item.due-red{    background: rgba(255,77,79,.14); border-color:#ffc7c8; }
 ‎/* ====== סטטוס לפי קטגוריה: "מוכן לעלייה" / "עלה" ====== */
 .item.status-ready{
-  background: rgba(49,198,85,.16);   /* ירוק בהיר */
+  background: rgba(49,198,85,.16);
   border-color: #c7f0d4;
 }
 .item.status-published{
-  background: rgba(49,198,85,.32);   /* ירוק כהה יותר */
+  background: rgba(49,198,85,.32);
   border-color: #31c655;
 }
 </style>
@@ -1084,7 +1084,6 @@ function renderItem(item,catId){
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה"
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה" או "עלה"
 const parentCat = board.categories.find(c => c.id === catId);
-
 
 if (parentCat) {
   if (parentCat.title === "מוכן לעלייה") {
