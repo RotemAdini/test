@@ -267,6 +267,15 @@ body.compact .dot{width:8px;height:8px}
 /* רקע לפי קרבת דד־ליין */
 .item.due-yellow{ background: rgba(253,188,61,.12); border-color:#ffe3b0; }
 .item.due-red{    background: rgba(255,77,79,.14); border-color:#ffc7c8; }
+‎/* ====== סטטוס לפי קטגוריה: "מוכן לעלייה" / "עלה" ====== */
+.item.status-ready{
+  background: rgba(49,198,85,.16);   /* ירוק בהיר */
+  border-color: #c7f0d4;
+}
+.item.status-published{
+  background: rgba(49,198,85,.32);   /* ירוק כהה יותר */
+  border-color: #31c655;
+}
 </style>
 </head>
 
@@ -1075,6 +1084,14 @@ function renderItem(item,catId){
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה"
 // צביעת רקע לפי תאריך יעד – רק אם לא ב"מוכן לעלייה" או "עלה"
 const parentCat = board.categories.find(c => c.id === catId);
+‎// צביעה לפי קטגוריה: "מוכן לעלייה" = ירוק; "עלה" = ירוק כהה
+if (parentCat) {
+  if (parentCat.title === "מוכן לעלייה") {
+    el.classList.add('status-ready');
+  } else if (parentCat.title === "עלה") {
+    el.classList.add('status-published');
+  }
+}
 if (parentCat && !isPublishedCategoryTitle(parentCat.title)) {
   const days = daysUntil(item.due);
   if (days !== null) {
