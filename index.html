@@ -400,7 +400,7 @@ body.compact .dot{width:8px;height:8px}
     </div>
 
     <div class="row">
-      <div "class"="label">דחיפות</div>
+<div class="label">דחיפות</div>
       <div class="chips">
         <button class="chip" data-pr="red" type="button"><span class="dot red"></span>דחוף</button>
         <button class="chip" data-pr="yellow" type="button"><span class="dot yellow"></span>ביניים</button>
@@ -2031,78 +2031,92 @@ function renderScheduleCategory(){
   });
 
   // ציור פריטים
-// ציור פריטים
-sorted.forEach(it=>{
-  const row = document.createElement("div");
-  row.className = "item";
-  row.dataset.itemId = it.id;
+  sorted.forEach(it=>{
+    const row = document.createElement("div");
+    row.className = "item";
+    row.dataset.itemId = it.id;
 
-  const isUndated = !isValidDateStr(it.due);
-  row.setAttribute("draggable", isUndated ? "true" : "false");
+    const isUndated = !isValidDateStr(it.due);
+    row.setAttribute("draggable", isUndated ? "true" : "false");
 
-  // באדג' דחיפות
-  const pr = it.priority || "green";
-  const badge = document.createElement("span");
-  badge.className = "badge " + pr;
-  badge.innerHTML = `<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
+    // באדג' דחיפות
+    const pr = it.priority || "green";
+    const badge = document.createElement("span");
+    badge.className = "badge " + pr;
+    badge.innerHTML = `<span class="dot ${pr}"></span>${priorityLabel(pr)}`;
 
-  // כותרת + תאריך + בגדים
-  const title = document.createElement("div");
-  title.className = "grow";
-  const outfits = it.outfits || {rotem:"", meir:""};
-  title.innerHTML = `
-    <div><strong>${escapeHTML(it.title||"(ללא שם)")}</strong></div>
-    <div class="meta">תאריך יעד: <span class="schedule-due">${formatDueWithDay(it.due)}</span></div>
-    <div class="meta">רותם: ${escapeHTML(outfits.rotem || "—")}</div>
-    <div class="meta">מאיר: ${escapeHTML(outfits.meir || "—")}</div>
-  `;
+    // כותרת + תאריך + בגדים
+    const title = document.createElement("div");
+    title.className = "grow";
+    const outfits = it.outfits || {rotem:"", meir:""};
+    title.innerHTML = `
+      <div><strong>${escapeHTML(it.title||"(ללא שם)")}</strong></div>
+      <div class="meta">תאריך יעד: <span class="schedule-due">${formatDueWithDay(it.due)}</span></div>
+      <div class="meta">רותם: ${escapeHTML(outfits.rotem || "—")}</div>
+      <div class="meta">מאיר: ${escapeHTML(outfits.meir || "—")}</div>
+    `;
 
-  // תגיות בשורה (כמו בקטגוריות הרגילות)
-  const tagsInline = document.createElement("div");
-  tagsInline.className = "inline-tags";
-  (it.tags || []).forEach(t=>{
-    const span = document.createElement("span");
-    span.className = "inline-tag";
-    const {bg,border,text} = tagColors(t);
-    span.style.background = bg;
-    span.style.borderColor = border;
-    span.style.color = text;
-    span.textContent = t;
-    tagsInline.appendChild(span);
-  });
+    // תגיות בשורה
+    const tagsInline = document.createElement("div");
+    tagsInline.className = "inline-tags";
+    (it.tags || []).forEach(t=>{
+      const span = document.createElement("span");
+      span.className = "inline-tag";
+      const {bg,border,text} = tagColors(t);
+      span.style.background = bg;
+      span.style.borderColor = border;
+      span.style.color = text;
+      span.textContent = t;
+      tagsInline.appendChild(span);
+    });
 
-  // סימון וי אם הפריט ב"עלה"
-  const mark = document.createElement("div");
-  mark.className = "schedule-mark";
-  if (postedSet.has(it.id)) { mark.textContent = "✓"; mark.title = "עלה"; }
+    // סימון וי אם הפריט ב"עלה"
+    const mark = document.createElement("div");
+    mark.className = "schedule-mark";
+    if (postedSet.has(it.id)) { mark.textContent = "✓"; mark.title = "עלה"; }
 
-  // קליק פותח פרטי פריט מקוריים
-  row.addEventListener("click", ()=>{
-    const catId = itemToCat.get(it.id);
-    if (catId) openInfoModal(catId, it.id);
-  });
+    // קליק פותח פרטי פריט
+    row.addEventListener("click", ()=>{
+      const catId = itemToCat.get(it.id);
+      if (catId) openInfoModal(catId, it.id);
+    });
 
-  // רקע לפי דד־ליין רק אם הוא לא ב"מוכן לעלייה"
-  const srcCatId = itemToCat.get(it.id);
-  const srcCat = board.categories.find(c => c.id === srcCatId);
-  row.classList.remove('due-red','due-yellow'); // ניקוי בטוח
-  if (!srcCat || srcCat.title !== "מוכן לעלייה") {
-    const days = daysUntil(it.due);
-    if (days !== null) {
-      if (days < 2) row.classList.add('due-red');
-      else if (days < 7) row.classList.add('due-yellow');
+    // רקע לפי קטגוריה מקורית
+    const srcCatId = itemToCat.get(it.id);
+    const srcCat = board.categories.find(c => c.id === srcCatId);
+    const srcRole = srcCat && (srcCat.role || catRoleByTitle(srcCat.title));
+
+    // ניקוי צבעים קודמים
+    row.classList.remove('due-red','due-yellow','status-ready','status-published');
+
+    // אם זה לא מוכן/עלה → צבע לפי דדליין
+    if (srcRole !== 'ready' && srcRole !== 'published') {
+      const days = daysUntil(it.due);
+      if (days !== null) {
+        if (days < 2) row.classList.add('due-red');
+        else if (days < 7) row.classList.add('due-yellow');
+      }
     }
-  }
 
-  // סדר האלמנטים בכרטיס
-  row.append(badge, title, tagsInline, mark);
-  list.appendChild(row);
-});
+    // אם מוכן לעלייה → ירוק
+    if (srcRole === 'ready') {
+      row.classList.add('status-ready');
+    }
+
+    // אם עלה → ירוק כהה
+    if (srcRole === 'published') {
+      row.classList.add('status-published');
+    }
+
+    // הוספת האלמנטים לשורה
+    row.append(badge, title, tagsInline, mark);
+    list.appendChild(row);
+  });
 
   col.append(header, list);
   mount.appendChild(col);
 
-  // --- גרירה רק לפריטים בלי תאריך ---
+  // גרירה (רק לפריטים בלי תאריך)
   const draggables = list.querySelectorAll(".item[draggable='true']");
   let dragCtx = { id:null };
 
@@ -2139,7 +2153,7 @@ sorted.forEach(it=>{
       const rect = el.getBoundingClientRect();
       const insertBefore = e.clientY < rect.top + rect.height/2;
       scheduleReorderNoDate(dragCtx.id, el.dataset.itemId, insertBefore);
-      render(); // ציור מחדש עם הסדר החדש
+      render(); // ציור מחדש
     });
   });
 }
