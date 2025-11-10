@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>לוח ניהול עריכת סרטונים</title>
-
+<link rel="icon" href="data:,">
 <style>
 /* ======= Theme ======= */
 :root{
@@ -267,7 +267,7 @@ body.compact .dot{width:8px;height:8px}
 /* רקע לפי קרבת דד־ליין */
 .item.due-yellow{ background: rgba(253,188,61,.12); border-color:#ffe3b0; }
 .item.due-red{    background: rgba(255,77,79,.14); border-color:#ffc7c8; }
-‎/* ====== סטטוס לפי קטגוריה: "מוכן לעלייה" / "עלה" ====== */
+/* ====== סטטוס לפי קטגוריה: "מוכן לעלייה" / "עלה" ====== */
 .item.status-ready{
   background: rgba(49,198,85,.16);
   border-color: #c7f0d4;
@@ -550,7 +550,27 @@ function todayStr(){
         day=String(d.getDate()).padStart(2,'0');
   return `${d.getFullYear()}-${m}-${day}`;
 }
+// --- Normalization & Roles for categories ---
+function normTitle(s){
+  return (s||"")
+    .replace(/\s+/g,' ')              // רווחים מרובים לרווח אחד
+    .replace(/[״"\u05F4]/g,'')        // הסרת גרשיים/גרשיים כפולים בעברית
+    .trim();
+}
 
+// החזרת "תפקיד" לפי שם: 'ready' ל"מוכן לעליה/לעלייה", 'published' ל"עלה"
+function catRoleByTitle(title){
+  const t = normTitle(title);
+  if (/^מוכן לעליה?$/.test(t)) return 'ready';   // תופס גם "מוכן לעליה" וגם "מוכן לעלייה"
+  if (t === 'עלה') return 'published';
+  return null;
+}
+
+// עוזר: בודק אם קטגוריה היא מוכן/עלה
+function isPublishedCategory(cat){
+  const role = cat && (cat.role || catRoleByTitle(cat.title));
+  return role === 'ready' || role === 'published';
+}
 /* ---------- תאריכים ---------- */
 
 // ממיר "2025-10-1" ל-"2025-10-01" וגם "23.10.25" ל-"2025-10-23"
@@ -706,9 +726,7 @@ const DEFAULT_BOARD={
     {id:uid(),title:"עלה",collapsed:false,items:[]}
   ]
 };
-function isPublishedCategoryTitle(t){ 
-  return t === "מוכן לעלייה" || t === "עלה"; 
-}
+
 /* ===== Persistence ===== */
 function saveBoard(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(board)); }
 function loadBoard(){
@@ -728,6 +746,9 @@ if (!Array.isArray(data.scheduleManual)) data.scheduleManual = [];
         title: sc.title||"",
         collapsed: !!sc.collapsed
       }));
+ // NEW: קבע role על בסיס הכותרת אם חסר
+  c.role = c.role || catRoleByTitle(c.title);
+
       if (typeof c.unCollapsed !== 'boolean') c.unCollapsed = true; // 'ללא תת־קטגוריה' ברירת מחדל פתוח
       const validSub = new Set(c.subcategories.map(sc=>sc.id));
       (c.items||[]).forEach(it=>{
@@ -1086,13 +1107,16 @@ function renderItem(item,catId){
 const parentCat = board.categories.find(c => c.id === catId);
 
 if (parentCat) {
-  if (parentCat.title === "מוכן לעלייה") {
+  const role = parentCat.role || catRoleByTitle(parentCat.title);
+  if (role === 'ready') {
     el.classList.add('status-ready');
-  } else if (parentCat.title === "עלה") {
+  } else if (role === 'published') {
     el.classList.add('status-published');
   }
 }
-if (parentCat && !isPublishedCategoryTitle(parentCat.title)) {
+
+// צביעת due רק אם לא מוכן/עלה
+if (parentCat && !isPublishedCategory(parentCat)) {
   const days = daysUntil(item.due);
   if (days !== null) {
     if (days < 2) el.classList.add('due-red');
